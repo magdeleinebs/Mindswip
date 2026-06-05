@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MindSwipe</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0D0820; min-height: 100svh; display: flex; justify-content: center; align-items: center; }
+.phone { width: 100%; max-width: 430px; height: 100svh; background: #1A1035; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+.screen { display: none; flex-direction: column; height: 100%; overflow: hidden; }
+.screen.active { display: flex; animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* TOKENS */
+:root {
+  --v: #6C3FC5; --vl: #A67FF5; --vd: #2D1F5E;
+  --n: #1A1035; --g: #A89FC2; --dim: #6B5FAD;
+  --card: #2D1F5E; --border: #3D2A7E;
+}
+
+/* SHARED */
+.btn-primary { background: var(--v); color: #fff; border: none; border-radius: 50px; padding: 16px; font-size: 16px; font-weight: 500; cursor: pointer; width: 100%; }
+.btn-primary:active { opacity: 0.85; transform: scale(0.98); }
+.btn-ghost { background: transparent; color: var(--vl); border: 1px solid var(--vd); border-radius: 50px; padding: 14px; font-size: 15px; cursor: pointer; width: 100%; }
+.field-label { font-size: 11px; color: var(--g); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; font-weight: 500; }
+.field-input { background: var(--vd); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; font-size: 16px; color: #fff; width: 100%; outline: none; font-family: inherit; }
+.field-input::placeholder { color: var(--dim); }
+.field-input:focus { border-color: var(--v); }
+.nav-bar { background: #120C28; border-top: 0.5px solid var(--vd); display: flex; padding: 10px 0 max(24px, env(safe-area-inset-bottom)); flex-shrink: 0; }
+.nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px 0; }
+.nav-icon { font-size: 20px; color: var(--dim); }
+.nav-label { font-size: 10px; color: var(--dim); }
+.nav-item.active .nav-icon, .nav-item.active .nav-label { color: var(--vl); }
+.nav-badge { position: relative; }
+.nav-badge::after { content: attr(data-count); position: absolute; top: -4px; right: -8px; background: var(--v); color: #fff; font-size: 9px; font-weight: 600; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.screen-title { font-size: 22px; font-weight: 500; color: #fff; }
+.screen-sub { font-size: 13px; color: var(--g); margin-top: 4px; }
+.page-header { padding: max(56px, env(safe-area-inset-top)) 20px 16px; flex-shrink: 0; }
+.scrollable { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+/* SPLASH */
+#splash { background: var(--n); justify-content: center; align-items: center; gap: 0; }
+.logo-text { font-size: 36px; font-weight: 300; color: #fff; letter-spacing: -0.02em; }
+.logo-text span { color: var(--vl); font-weight: 500; }
+.tagline { font-size: 14px; color: var(--g); text-align: center; line-height: 1.6; max-width: 260px; }
+.saved-banner { background: var(--vd); border: 1px solid var(--v); border-radius: 14px; padding: 14px 18px; text-align: center; }
+.sb-hello { font-size: 16px; font-weight: 500; color: #fff; }
+.sb-sub { font-size: 12px; color: var(--vl); margin-top: 3px; }
+
+/* INSCRIPTION */
+#inscription { background: var(--n); }
+.genre-row { display: flex; gap: 10px; }
+.genre-btn { flex: 1; background: var(--vd); border: 1px solid var(--border); border-radius: 12px; padding: 14px; font-size: 14px; color: var(--g); cursor: pointer; text-align: center; transition: all 0.2s; }
+.genre-btn.selected { background: var(--v); border-color: var(--v); color: #fff; }
+.photo-zone { background: var(--vd); border: 1.5px dashed var(--v); border-radius: 16px; padding: 28px; text-align: center; cursor: pointer; }
+.mots-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.mot-pill { background: var(--vd); border: 1px solid var(--border); border-radius: 20px; padding: 8px 14px; font-size: 13px; color: var(--g); cursor: pointer; user-select: none; transition: all 0.15s; }
+.mot-pill.selected { background: var(--v); border-color: var(--v); color: #fff; }
+
+/* DISCOVER */
+#discover { background: var(--n); }
+.disc-header { padding: max(56px, env(safe-area-inset-top)) 20px 14px; display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0; }
+.soiree-pill { background: var(--vd); border-radius: 20px; padding: 6px 12px; font-size: 12px; color: var(--vl); font-weight: 500; }
+.cards-list { padding: 0 20px 16px; display: flex; flex-direction: column; gap: 14px; }
+.person-card { background: var(--card); border-radius: 20px; overflow: hidden; border: 1px solid var(--border); transition: border-color 0.2s; }
+.person-card.crushed { border-color: var(--v); }
+.person-card.crushed-back { border-color: #A67FF5; box-shadow: 0 0 0 1px #A67FF540; }
+.pc-photo { height: 160px; display: flex; align-items: center; justify-content: center; position: relative; }
+.pc-avatar { width: 72px; height: 72px; border-radius: 50%; background: var(--v); display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 500; color: #fff; }
+.pc-tag { position: absolute; top: 10px; right: 10px; background: rgba(26,16,53,0.85); border: 1px solid var(--v); border-radius: 20px; padding: 3px 10px; font-size: 11px; color: var(--vl); }
+.pc-crush-tag { position: absolute; top: 10px; left: 10px; background: var(--v); border-radius: 20px; padding: 3px 10px; font-size: 11px; color: #fff; font-weight: 500; }
+.pc-body { padding: 14px 16px; }
+.pc-name { font-size: 17px; font-weight: 500; color: #fff; }
+.pc-age { font-size: 13px; color: var(--g); margin-top: 2px; }
+.pc-mots { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.pc-mot { background: var(--n); border-radius: 20px; padding: 4px 10px; font-size: 12px; color: var(--vl); }
+.pc-reponse { background: var(--n); border-radius: 12px; padding: 10px 12px; margin-top: 10px; }
+.pr-q { font-size: 11px; color: var(--dim); margin-bottom: 4px; }
+.pr-a { font-size: 13px; color: var(--g); line-height: 1.4; }
+.pc-actions { display: flex; gap: 10px; margin-top: 12px; }
+.btn-crush { flex: 1; background: var(--v); border: none; border-radius: 12px; padding: 12px; font-size: 14px; font-weight: 500; color: #fff; cursor: pointer; transition: all 0.2s; }
+.btn-crush.active { background: #A67FF5; }
+.btn-crush:active { transform: scale(0.97); }
+.btn-pass { background: transparent; border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; font-size: 14px; color: var(--dim); cursor: pointer; }
+
+/* MATCHES */
+#matches { background: var(--n); }
+.section-label { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500; padding: 0 20px; margin-bottom: 10px; }
+.match-section { margin-bottom: 24px; }
+.match-item { background: var(--card); padding: 14px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; border-radius: 16px; margin: 0 20px 8px; border: 1px solid var(--border); transition: border-color 0.2s; }
+.match-item.is-match { border-color: var(--v); }
+.match-item:active { opacity: 0.8; }
+.mi-avatar { width: 50px; height: 50px; border-radius: 50%; background: var(--v); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 500; color: #fff; flex-shrink: 0; position: relative; }
+.mi-dot { position: absolute; bottom: 1px; right: 1px; width: 14px; height: 14px; background: var(--vl); border-radius: 50%; border: 2px solid var(--card); display: flex; align-items: center; justify-content: center; font-size: 8px; }
+.mi-info { flex: 1; min-width: 0; }
+.mi-name { font-size: 15px; font-weight: 500; color: #fff; }
+.mi-preview { font-size: 12px; color: var(--g); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mi-badge { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; flex-shrink: 0; }
+.mi-badge.crush { background: var(--vd); color: var(--vl); }
+.mi-badge.match { background: var(--v); color: #fff; }
+.mi-badge.validated { background: #1A4035; color: #5DCAA5; }
+.no-content { text-align: center; padding: 40px 30px; color: var(--dim); font-size: 14px; line-height: 1.7; }
+
+/* CRUSH COUNTER BANNER */
+.crush-banner { margin: 0 20px 16px; background: var(--vd); border: 1px solid var(--v); border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+.cb-icon { font-size: 28px; }
+.cb-text { flex: 1; }
+.cb-title { font-size: 14px; font-weight: 500; color: #fff; }
+.cb-sub { font-size: 12px; color: var(--vl); margin-top: 2px; }
+
+/* MODAL MATCH */
+.modal-overlay { position: absolute; inset: 0; background: rgba(13,8,32,0.92); display: flex; align-items: flex-end; justify-content: center; z-index: 100; }
+.modal-overlay.hidden { display: none; }
+.modal-sheet { background: #1E1240; border-radius: 28px 28px 0 0; padding: 28px 24px max(32px, env(safe-area-inset-bottom)); width: 100%; }
+.modal-handle { width: 40px; height: 4px; background: var(--vd); border-radius: 2px; margin: 0 auto 24px; }
+.modal-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--v); display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 500; color: #fff; margin: 0 auto 12px; border: 3px solid var(--vl); }
+.modal-title { font-size: 20px; font-weight: 500; color: #fff; text-align: center; margin-bottom: 6px; }
+.modal-sub { font-size: 13px; color: var(--g); text-align: center; margin-bottom: 24px; line-height: 1.5; }
+.intention-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.intention-btn { background: var(--vd); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; text-align: left; cursor: pointer; transition: all 0.2s; }
+.intention-btn:active { transform: scale(0.98); }
+.intention-btn.selected { background: var(--v); border-color: var(--v); }
+.ib-emoji { font-size: 20px; margin-bottom: 4px; }
+.ib-label { font-size: 14px; font-weight: 500; color: #fff; }
+.ib-sub { font-size: 12px; color: var(--g); margin-top: 2px; }
+.intention-btn.selected .ib-sub { color: #D4BBFF; }
+.btn-skip { background: transparent; border: none; color: var(--dim); font-size: 14px; cursor: pointer; width: 100%; padding: 10px; }
+
+/* MATCH CELEBRATION */
+.celebration-overlay { position: absolute; inset: 0; background: var(--n); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 200; gap: 20px; padding: 40px; text-align: center; }
+.celebration-overlay.hidden { display: none; }
+.confetti-area { font-size: 48px; animation: bounce 0.6s ease infinite alternate; }
+@keyframes bounce { from { transform: scale(1); } to { transform: scale(1.15); } }
+.celeb-avatars { display: flex; align-items: center; gap: 0; }
+.celeb-av { width: 72px; height: 72px; border-radius: 50%; background: var(--v); display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 500; color: #fff; border: 3px solid var(--n); }
+.celeb-av:first-child { z-index: 2; }
+.celeb-av:last-child { margin-left: -16px; background: #534AB7; }
+.celeb-title { font-size: 26px; font-weight: 500; color: #fff; }
+.celeb-sub { font-size: 14px; color: var(--g); line-height: 1.6; }
+.celeb-intention { background: var(--vd); border: 1px solid var(--v); border-radius: 14px; padding: 12px 20px; font-size: 14px; color: var(--vl); font-weight: 500; }
+
+/* CHAT */
+#chat { background: var(--n); }
+.chat-header { padding: max(56px, env(safe-area-inset-top)) 20px 14px; display: flex; align-items: center; gap: 14px; border-bottom: 0.5px solid var(--vd); flex-shrink: 0; }
+.chat-back { font-size: 22px; color: var(--vl); cursor: pointer; }
+.chat-av { width: 38px; height: 38px; border-radius: 50%; background: var(--v); display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; font-weight: 500; }
+.chat-messages { flex: 1; padding: 14px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.msg { max-width: 78%; }
+.msg.sent { align-self: flex-end; }
+.msg.recv { align-self: flex-start; }
+.msg-bubble { padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.5; }
+.msg.sent .msg-bubble { background: var(--v); color: #fff; border-bottom-right-radius: 4px; }
+.msg.recv .msg-bubble { background: var(--card); color: #D4BBFF; border-bottom-left-radius: 4px; }
+.msg-time { font-size: 10px; color: var(--dim); margin-top: 4px; }
+.msg.sent .msg-time { text-align: right; }
+.chat-input-bar { padding: 10px 16px max(20px, env(safe-area-inset-bottom)); border-top: 0.5px solid var(--vd); display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0; }
+.chat-input { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 22px; padding: 10px 16px; font-size: 15px; color: #fff; outline: none; resize: none; max-height: 100px; font-family: inherit; }
+.chat-send { width: 40px; height: 40px; background: var(--v); border: none; border-radius: 50%; cursor: pointer; color: #fff; font-size: 18px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+
+/* PROFIL */
+#profil { background: var(--n); }
+.profil-top { padding: max(56px, env(safe-area-inset-top)) 20px 20px; text-align: center; flex-shrink: 0; }
+.profil-av { width: 96px; height: 96px; border-radius: 50%; background: var(--v); display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 500; color: #fff; margin: 0 auto 14px; border: 3px solid var(--vl); }
+.profil-section { background: var(--card); border-radius: 16px; padding: 16px; margin: 0 20px 12px; }
+.ps-title { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+.ps-value { font-size: 14px; color: #D4BBFF; line-height: 1.5; }
+.ps-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 0.5px solid var(--border); }
+.ps-row:last-child { border-bottom: none; }
+.ps-row-label { font-size: 14px; color: var(--g); }
+.ps-row-val { font-size: 14px; color: #D4BBFF; font-weight: 500; }
+.btn-deconnect { width: calc(100% - 40px); margin: 4px 20px; background: transparent; border: 1px solid var(--border); border-radius: 12px; padding: 14px; color: var(--dim); font-size: 14px; cursor: pointer; }
+.btn-danger { width: calc(100% - 40px); margin: 4px 20px 32px; background: transparent; border: 1px solid #A32D2D; border-radius: 12px; padding: 14px; color: #E24B4A; font-size: 14px; cursor: pointer; }
+
+/* LOADING */
+.loading-screen { position: absolute; inset: 0; background: var(--n); display: flex; align-items: center; justify-content: center; z-index: 300; flex-direction: column; gap: 16px; }
+.loading-screen.hidden { display: none; }
+.spinner { width: 36px; height: 36px; border: 3px solid var(--vd); border-top-color: var(--v); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* AGENDA */
+#agenda { background: var(--n); }
+.agenda-card { background: var(--card); border-radius: 20px; margin: 0 20px 14px; border: 1px solid var(--border); overflow: hidden; }
+.agenda-card.upcoming { border-color: var(--v); }
+.agenda-card-header { padding: 14px 16px 10px; display: flex; justify-content: space-between; align-items: flex-start; }
+.agenda-name { font-size: 17px; font-weight: 500; color: #fff; }
+.agenda-format { font-size: 12px; color: var(--vl); margin-top: 3px; }
+.agenda-badge { font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 20px; background: var(--v); color: #fff; flex-shrink: 0; }
+.agenda-badge.past { background: var(--vd); color: var(--dim); }
+.agenda-details { padding: 0 16px 14px; display: flex; flex-direction: column; gap: 6px; }
+.agenda-detail-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--g); }
+.agenda-detail-row span:first-child { font-size: 15px; }
+.agenda-join-btn { margin: 0 16px 14px; background: var(--v); color: #fff; border: none; border-radius: 12px; padding: 12px; font-size: 14px; font-weight: 500; cursor: pointer; width: calc(100% - 32px); }
+.agenda-join-btn:active { opacity: 0.85; }
+
+/* SOIREE SELECTOR */
+.soiree-selector { display: flex; flex-direction: column; gap: 12px; }
+.soiree-choice { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; cursor: pointer; transition: all 0.2s; }
+.soiree-choice:active { transform: scale(0.98); }
+.soiree-choice.selected { border-color: var(--v); background: #2D1F5E; }
+.sc-name { font-size: 16px; font-weight: 500; color: #fff; }
+.sc-date { font-size: 12px; color: var(--vl); margin-top: 3px; }
+.sc-desc { font-size: 12px; color: var(--g); margin-top: 6px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- LOADING -->
+  <div class="loading-screen" id="loading">
+    <svg width="48" height="48" viewBox="0 0 72 72" fill="none">
+      <circle cx="22" cy="36" r="16" fill="#1A1035" stroke="#6C3FC5" stroke-width="1.5"/>
+      <circle cx="50" cy="36" r="16" fill="#1A1035" stroke="#A67FF5" stroke-width="1.5"/>
+      <circle cx="36" cy="36" r="6" fill="#A67FF5"/>
+      <line x1="36" y1="16" x2="36" y2="11" stroke="#A67FF5" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="36" y1="56" x2="36" y2="61" stroke="#6C3FC5" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="2" y1="36" x2="7" y2="36" stroke="#6C3FC5" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="65" y1="36" x2="70" y2="36" stroke="#6C3FC5" stroke-width="1.2" stroke-linecap="round"/>
+    </svg>
+    <div class="spinner"></div>
+  </div>
+
+  <!-- SPLASH -->
+  <div class="screen" id="splash">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:40px;">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <svg width="56" height="56" viewBox="0 0 72 72" fill="none">
+          <circle cx="22" cy="36" r="16" fill="#1A1035" stroke="#6C3FC5" stroke-width="1.5"/>
+          <circle cx="50" cy="36" r="16" fill="#1A1035" stroke="#A67FF5" stroke-width="1.5"/>
+          <circle cx="36" cy="36" r="6" fill="#A67FF5"/>
+          <line x1="36" y1="16" x2="36" y2="11" stroke="#A67FF5" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="36" y1="56" x2="36" y2="61" stroke="#6C3FC5" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="2" y1="36" x2="7" y2="36" stroke="#6C3FC5" stroke-width="1.2" stroke-linecap="round"/>
+          <line x1="65" y1="36" x2="70" y2="36" stroke="#6C3FC5" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        <div class="logo-text">Mind<span>Swipe</span></div>
+      </div>
+      <div class="tagline">On se rencontre d'abord, on swipe ensuite.</div>
+      <div id="splash-btns" style="display:flex;flex-direction:column;gap:12px;width:100%;"></div>
+      <div onclick="showScreen('agenda')" style="font-size:13px;color:var(--vl);cursor:pointer;text-decoration:underline;text-underline-offset:3px;">📅 Voir l'agenda des soirées</div>
+    </div>
+    <div style="padding-bottom:max(24px,env(safe-area-inset-bottom));text-align:center;font-size:12px;color:#3D2A7E;">Vis d'abord, swipe ensuite.<br><span style="font-size:10px;color:#2A1E60;">© Magdeleine BS · MindSwipe</span></div>
+  </div>
+
+  <!-- INSCRIPTION -->
+  <div class="screen" id="inscription">
+    <div class="page-header">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px;">
+        <span onclick="showScreen('splash')" style="font-size:22px;color:var(--vl);cursor:pointer;">&#8592;</span>
+        <div class="screen-title">Ton profil</div>
+      </div>
+      <div class="screen-sub" style="padding-left:34px;" id="inscription-soiree-sub">Choisis ta soirée</div>
+    </div>
+    <div class="scrollable">
+      <div style="padding:0 20px 40px;display:flex;flex-direction:column;gap:16px;">
+        <!-- SÉLECTEUR DE SOIRÉE -->
+        <div>
+          <div class="field-label">Ta soirée</div>
+          <div class="soiree-selector" id="soiree-selector">
+            <div class="soiree-choice selected" id="sc-etincelle" onclick="selectSoiree('soiree_etincelle_juin2025','Soirée Étincelle · 12 juin','Étincelle')">
+              <div class="sc-name">✨ Soirée Étincelle</div>
+              <div class="sc-date">Jeudi 12 juin 2025 · Bar Le Cosmos</div>
+              <div class="sc-desc">25-35 ans · Dynamique, fun, décomplexée</div>
+            </div>
+            <div class="soiree-choice" id="sc-confluence" onclick="selectSoiree('soiree_confluence_juin2025','Soirée Confluence · 26 juin','Confluence')">
+              <div class="sc-name">🌊 Soirée Confluence</div>
+              <div class="sc-date">Jeudi 26 juin 2025 · Bar Le Cosmos</div>
+              <div class="sc-desc">35-45 ans · Équilibre, profondeur, sincérité</div>
+            </div>
+          </div>
+        </div>
+        <div><div class="field-label">Prénom</div><input class="field-input" id="inp-prenom" placeholder="Ton prénom"></div>
+        <div><div class="field-label">Âge</div><input class="field-input" id="inp-age" placeholder="Ton âge" type="number" inputmode="numeric"></div>
+        <div>
+          <div class="field-label">Je suis</div>
+          <div class="genre-row">
+            <div class="genre-btn selected" id="btn-femme" onclick="selectGenre('femme')">Une femme</div>
+            <div class="genre-btn" id="btn-homme" onclick="selectGenre('homme')">Un homme</div>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">Photo de la soirée</div>
+          <div class="photo-zone" onclick="simulatePhoto()">
+            <div id="pz-content">
+              <div style="font-size:30px;color:var(--v);margin-bottom:8px;">&#128247;</div>
+              <div style="font-size:13px;color:var(--g);">Photo du photobooth ou de l'animatrice</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">3 mots qui te définissent</div>
+          <div class="mots-grid" id="mots-grid">
+            <!-- rempli dynamiquement selon le genre -->
+          </div>
+        </div>
+        <div>
+          <div class="field-label">Ta réponse de la soirée</div>
+          <input class="field-input" id="inp-reponse" placeholder="Ta réponse au jeu...">
+          <div style="font-size:11px;color:var(--dim);margin-top:6px;">La chose la plus folle faite spontanément</div>
+        </div>
+        <button class="btn-primary" onclick="saveAndContinue()" style="margin-top:8px;">Rejoindre la soirée</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DISCOVER -->
+  <div class="screen" id="discover">
+    <div class="disc-header">
+      <div>
+        <div style="font-size:21px;font-weight:500;color:#fff;" id="disc-title">Ce soir</div>
+        <div style="font-size:13px;color:var(--g);" id="disc-soiree-label">Soirée Étincelle · 12 juin</div>
+      </div>
+      <div class="soiree-pill" id="disc-count">...</div>
+    </div>
+    <div class="scrollable">
+      <div class="cards-list" id="cards-list">
+        <div style="text-align:center;padding:40px 20px;color:var(--dim);font-size:14px;">Chargement des participants...</div>
+      </div>
+    </div>
+    <div class="nav-bar">
+      <div class="nav-item active" onclick="showTab('discover')"><div class="nav-icon">&#10024;</div><div class="nav-label">Ce soir</div></div>
+      <div class="nav-item" onclick="showTab('matches')"><div class="nav-icon nav-badge" id="matches-nav-badge">&#128140;</div><div class="nav-label">Connexions</div></div>
+      <div class="nav-item" onclick="showTab('agenda')"><div class="nav-icon">&#128197;</div><div class="nav-label">Agenda</div></div>
+      <div class="nav-item" onclick="showTab('profil')"><div class="nav-icon">&#128100;</div><div class="nav-label">Profil</div></div>
+    </div>
+  <div class="screen" id="matches">
+    <div class="page-header">
+      <div class="screen-title">Mes connexions</div>
+      <div class="screen-sub" id="matches-soiree-label">Soirée Étincelle · 12 juin</div>
+    </div>
+    <div class="scrollable" id="matches-content">
+      <div class="no-content">Tes connexions apparaîtront ici<br>au fil de la soirée.</div>
+    </div>
+    <div class="nav-bar">
+      <div class="nav-item" onclick="showTab('discover')"><div class="nav-icon">&#10024;</div><div class="nav-label">Ce soir</div></div>
+      <div class="nav-item active" onclick="showTab('matches')"><div class="nav-icon">&#128140;</div><div class="nav-label">Connexions</div></div>
+      <div class="nav-item" onclick="showTab('agenda')"><div class="nav-icon">&#128197;</div><div class="nav-label">Agenda</div></div>
+      <div class="nav-item" onclick="showTab('profil')"><div class="nav-icon">&#128100;</div><div class="nav-label">Profil</div></div>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="screen" id="chat">
+    <div class="chat-header">
+      <span class="chat-back" onclick="showTab('matches')">&#8592;</span>
+      <div class="chat-av" id="chat-avatar">?</div>
+      <div>
+        <div style="font-size:15px;font-weight:500;color:#fff;" id="chat-name">...</div>
+        <div style="font-size:11px;color:var(--vl);" id="chat-intention">Match depuis ce soir</div>
+      </div>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <div style="text-align:center;font-size:12px;color:var(--dim);padding:8px 0;">Vous vous êtes rencontrés ce soir</div>
+    </div>
+    <div class="chat-input-bar">
+      <textarea class="chat-input" id="chat-input" placeholder="Écrire un message..." rows="1" oninput="autoResize(this)"></textarea>
+      <button class="chat-send" onclick="sendMessage()">&#10148;</button>
+    </div>
+  </div>
+
+  <!-- PROFIL -->
+  <div class="screen" id="profil">
+    <div class="profil-top">
+      <div class="profil-av" id="profil-initial">?</div>
+      <div style="font-size:20px;font-weight:500;color:#fff;" id="profil-name">Mon profil</div>
+      <div style="font-size:13px;color:var(--vl);margin-top:4px;" id="profil-soiree-label">Soirée Étincelle · 12 juin</div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap;" id="profil-mots"></div>
+    </div>
+    <div class="scrollable">
+      <div class="profil-section">
+        <div class="ps-title">Ma réponse</div>
+        <div class="ps-value" id="profil-reponse">—</div>
+      </div>
+      <div class="profil-section">
+        <div class="ps-title">Mes stats ce soir</div>
+        <div class="ps-row"><span class="ps-row-label">Crushes envoyés</span><span class="ps-row-val" id="stat-crushes-sent">0</span></div>
+        <div class="ps-row"><span class="ps-row-label">Crushes reçus</span><span class="ps-row-val" id="stat-crushes-recv">0</span></div>
+        <div class="ps-row"><span class="ps-row-label">Matches validés</span><span class="ps-row-val" id="stat-matches">0</span></div>
+      </div>
+      <div class="profil-section">
+        <div class="ps-title">Ma soirée</div>
+        <div class="ps-row"><span class="ps-row-label">Format</span><span class="ps-row-val">Soirée Étincelle</span></div>
+        <div class="ps-row"><span class="ps-row-label">Date</span><span class="ps-row-val">12 juin 2025</span></div>
+        <div class="ps-row"><span class="ps-row-label">Lieu</span><span class="ps-row-val">Bar Le Cosmos</span></div>
+      </div>
+      <button class="btn-deconnect" onclick="logout()">Se déconnecter</button>
+      <button class="btn-danger" onclick="resetAll()">Effacer mon profil</button>
+    </div>
+    <div class="nav-bar">
+      <div class="nav-item" onclick="showTab('discover')"><div class="nav-icon">&#10024;</div><div class="nav-label">Ce soir</div></div>
+      <div class="nav-item" onclick="showTab('matches')"><div class="nav-icon">&#128140;</div><div class="nav-label">Connexions</div></div>
+      <div class="nav-item" onclick="showTab('agenda')"><div class="nav-icon">&#128197;</div><div class="nav-label">Agenda</div></div>
+      <div class="nav-item active" onclick="showTab('profil')"><div class="nav-icon">&#128100;</div><div class="nav-label">Profil</div></div>
+    </div>
+  </div>
+
+  <!-- MODAL INTENTION -->
+  <div class="modal-overlay hidden" id="modal-intention">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-avatar" id="modal-avatar">?</div>
+      <div class="modal-title" id="modal-title">Match !</div>
+      <div class="modal-sub" id="modal-sub">Vous vous êtes crushés mutuellement.<br>Comment tu vois la suite ?</div>
+      <div class="intention-grid">
+        <div class="intention-btn" onclick="selectIntention(this,'verre')" data-intention="verre">
+          <div class="ib-emoji">&#9749;</div>
+          <div class="ib-label">OK pour un verre</div>
+          <div class="ib-sub">On se retrouve bientôt, sans prise de tête</div>
+        </div>
+        <div class="intention-btn" onclick="selectIntention(this,'aventure')" data-intention="aventure">
+          <div class="ib-emoji">&#10024;</div>
+          <div class="ib-label">Tentons l'aventure</div>
+          <div class="ib-sub">J'ai envie d'aller plus loin avec toi</div>
+        </div>
+        <div class="intention-btn" onclick="selectIntention(this,'amis')" data-intention="amis">
+          <div class="ib-emoji">&#129309;</div>
+          <div class="ib-label">Restons amis, t'es super</div>
+          <div class="ib-sub">Super rencontre, gardons contact</div>
+        </div>
+        <div class="intention-btn" onclick="selectIntention(this,'surprise')" data-intention="surprise">
+          <div class="ib-emoji">&#127774;</div>
+          <div class="ib-label">On verra bien...</div>
+          <div class="ib-sub">Je veux qu'on se découvre encore</div>
+        </div>
+      </div>
+      <button class="btn-primary" id="modal-validate" onclick="validateMatch()" style="opacity:0.4;pointer-events:none;">Valider le match</button>
+      <button class="btn-skip" onclick="closeModal()">Pas maintenant</button>
+    </div>
+  </div>
+
+  <!-- CELEBRATION -->
+  <div class="celebration-overlay hidden" id="celebration">
+    <div class="confetti-area">&#127881;</div>
+    <div class="celeb-avatars">
+      <div class="celeb-av" id="celeb-av1">?</div>
+      <div class="celeb-av" id="celeb-av2">?</div>
+    </div>
+    <div class="celeb-title">C'est un match !</div>
+    <div class="celeb-sub" id="celeb-sub">Vous vous êtes croisés ce soir.<br>La suite commence maintenant.</div>
+    <div class="celeb-intention" id="celeb-intention">OK pour un verre</div>
+    <button class="btn-primary" onclick="closeCelebration()" style="max-width:280px;">Écrire un message</button>
+  </div>
+
+  <!-- AGENDA -->
+  <div class="screen" id="agenda">
+    <div class="page-header">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px;">
+        <span onclick="showScreen('splash')" style="font-size:22px;color:var(--vl);cursor:pointer;">&#8592;</span>
+        <div class="screen-title">Agenda</div>
+      </div>
+      <div class="screen-sub" style="padding-left:34px;">Les prochaines soirées MindSwipe</div>
+    </div>
+    <div class="scrollable">
+      <div style="padding:0 0 40px;">
+
+        <div style="padding:0 20px 10px;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:0.1em;font-weight:500;">Juin 2025</div>
+
+        <!-- Soirée Étincelle -->
+        <div class="agenda-card upcoming">
+          <div class="agenda-card-header">
+            <div>
+              <div class="agenda-name">✨ Soirée Étincelle</div>
+              <div class="agenda-format">25-35 ans · Dynamique, fun, décomplexée</div>
+            </div>
+            <div class="agenda-badge">À venir</div>
+          </div>
+          <div class="agenda-details">
+            <div class="agenda-detail-row"><span>📅</span><span>Jeudi 12 juin 2025</span></div>
+            <div class="agenda-detail-row"><span>⏰</span><span>19h30 – 23h00</span></div>
+            <div class="agenda-detail-row"><span>📍</span><span>Bar Le Cosmos · Paris</span></div>
+            <div class="agenda-detail-row"><span>🎟</span><span>15€/pers · Gratuit pour les femmes</span></div>
+            <div class="agenda-detail-row"><span>👥</span><span>Limité à 40 participants</span></div>
+            <div class="agenda-detail-row"><span>🚇</span><span>Raccompagnement métro inclus</span></div>
+          </div>
+          <button class="agenda-join-btn" onclick="selectSoireeAndGo('soiree_etincelle_juin2025','Soirée Étincelle · 12 juin','Étincelle')">Rejoindre cette soirée</button>
+        </div>
+
+        <!-- Soirée Confluence -->
+        <div class="agenda-card upcoming">
+          <div class="agenda-card-header">
+            <div>
+              <div class="agenda-name">🌊 Soirée Confluence</div>
+              <div class="agenda-format">35-45 ans · Équilibre, profondeur, sincérité</div>
+            </div>
+            <div class="agenda-badge">À venir</div>
+          </div>
+          <div class="agenda-details">
+            <div class="agenda-detail-row"><span>📅</span><span>Jeudi 26 juin 2025</span></div>
+            <div class="agenda-detail-row"><span>⏰</span><span>19h30 – 23h00</span></div>
+            <div class="agenda-detail-row"><span>📍</span><span>Bar Le Cosmos · Paris</span></div>
+            <div class="agenda-detail-row"><span>🎟</span><span>20€/pers · Gratuit pour les femmes</span></div>
+            <div class="agenda-detail-row"><span>👥</span><span>Limité à 40 participants</span></div>
+            <div class="agenda-detail-row"><span>🚇</span><span>Raccompagnement métro inclus</span></div>
+          </div>
+          <button class="agenda-join-btn" onclick="selectSoireeAndGo('soiree_confluence_juin2025','Soirée Confluence · 26 juin','Confluence')">Rejoindre cette soirée</button>
+        </div>
+
+        <div style="padding:16px 20px 0;font-size:12px;color:var(--dim);text-align:center;line-height:1.6;">
+          Toutes les soirées se vivent sans téléphone.<br>L'appli s'utilise à la fin, pour les connexions. 💜<br><br>
+          <span style="font-size:11px;color:#2A1E60;">© Magdeleine BS · MindSwipe</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+// ─── FIREBASE CONFIG ───────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyC8oQnXUW9iq9Tskynsn1oeYWD7yEvL3WM",
+  authDomain: "mindswipemind.firebaseapp.com",
+  databaseURL: "https://mindswipemind-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "mindswipemind",
+  storageBucket: "mindswipemind.firebasestorage.app",
+  messagingSenderId: "651445954824",
+  appId: "1:651445954824:web:7ce0b4c5ceba984a8ea4bd"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ─── STATE ─────────────────────────────────────────────────────────────────
+let SOIREE_ID = 'soiree_etincelle_juin2025';
+let SOIREE_LABEL = 'Soirée Étincelle · 12 juin';
+let SOIREE_NOM = 'Étincelle';
+const LOCAL_KEY = 'mindswipe_profil_v2';
+
+let myId = null;
+let myProfil = null;
+let selectedGenre = 'femme';
+let currentChatPerson = null;
+let pendingMatchPerson = null;
+let selectedIntentionValue = null;
+
+// Mots par genre
+const MOTS_FEMME = ['Curieuse','Aventurière','Créative','Sincère','Drôle','Passionnée','Bienveillante','Ambitieuse','Calme','Intense','Spontanée','Sensible','Déterminée','Lumineuse'];
+const MOTS_HOMME = ['Curieux','Aventurier','Créatif','Sincère','Drôle','Passionné','Bienveillant','Ambitieux','Calme','Intense','Spontané','Sensible','Déterminé','Lumineux'];
+
+// Soirées disponibles
+const SOIREES = {
+  soiree_etincelle_juin2025: { label: 'Soirée Étincelle · 12 juin', nom: 'Étincelle' },
+  soiree_confluence_juin2025: { label: 'Soirée Confluence · 26 juin', nom: 'Confluence' }
+};
+
+const intentionLabels = {
+  verre: '&#9749; OK pour un verre',
+  aventure: '&#10024; Tentons l\'aventure',
+  amis: '&#129309; Restons amis, t\'es super',
+  surprise: '&#127774; On verra bien...'
+};
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+function init() {
+  const saved = localStorage.getItem(LOCAL_KEY);
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      myId = data.id;
+      myProfil = data.profil;
+    } catch(e) {}
+  }
+  renderSplash();
+  hideLoading();
+}
+
+function hideLoading() {
+  document.getElementById('loading').classList.add('hidden');
+  showScreen('splash');
+}
+
+function renderSplash() {
+  const btn = document.getElementById('splash-btns');
+  if (myProfil) {
+    btn.innerHTML = `
+      <div class="saved-banner">
+        <div class="sb-hello">Bon retour, ${myProfil.prenom} !</div>
+        <div class="sb-sub">Ton profil est sauvegardé</div>
+      </div>
+      <button class="btn-primary" onclick="enterApp()">Rejoindre la soirée</button>
+      <button class="btn-ghost" onclick="showScreen('inscription')">Modifier mon profil</button>
+    `;
+  } else {
+    btn.innerHTML = `
+      <button class="btn-primary" onclick="showScreen('inscription')">Créer mon profil</button>
+    `;
+  }
+}
+
+// ─── INSCRIPTION ───────────────────────────────────────────────────────────
+function selectGenre(g) {
+  selectedGenre = g;
+  document.getElementById('btn-femme').classList.toggle('selected', g === 'femme');
+  document.getElementById('btn-homme').classList.toggle('selected', g === 'homme');
+  renderMotsGrid();
+}
+
+function renderMotsGrid() {
+  const grid = document.getElementById('mots-grid');
+  const mots = selectedGenre === 'femme' ? MOTS_FEMME : MOTS_HOMME;
+  grid.innerHTML = mots.map(m => `<div class="mot-pill" onclick="toggleMot(this)">${m}</div>`).join('');
+}
+
+function selectSoiree(id, label, nom) {
+  SOIREE_ID = id;
+  SOIREE_LABEL = label;
+  SOIREE_NOM = nom;
+  document.querySelectorAll('.soiree-choice').forEach(el => el.classList.remove('selected'));
+  const map = { soiree_etincelle_juin2025: 'sc-etincelle', soiree_confluence_juin2025: 'sc-confluence' };
+  if (map[id]) document.getElementById(map[id]).classList.add('selected');
+  document.getElementById('inscription-soiree-sub').textContent = label;
+}
+
+function selectSoireeAndGo(id, label, nom) {
+  selectSoiree(id, label, nom);
+  showScreen('inscription');
+}
+
+function toggleMot(el) {
+  const sel = document.querySelectorAll('#mots-grid .mot-pill.selected').length;
+  if (!el.classList.contains('selected') && sel >= 3) return;
+  el.classList.toggle('selected');
+}
+
+function simulatePhoto() {
+  document.getElementById('pz-content').innerHTML = '<div style="font-size:36px;">&#128247;</div><div style="font-size:13px;color:var(--vl);margin-top:8px;">Photo prise !</div>';
+}
+
+async function saveAndContinue() {
+  const prenom = document.getElementById('inp-prenom').value.trim();
+  const age = document.getElementById('inp-age').value.trim();
+  const reponse = document.getElementById('inp-reponse').value.trim();
+  const mots = [...document.querySelectorAll('#mots-grid .mot-pill.selected')].map(e => e.textContent);
+  if (!prenom) { alert('Entre ton prénom pour continuer.'); return; }
+
+  myProfil = { prenom, age, genre: selectedGenre, reponse, mots };
+
+  if (!myId) myId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2,6);
+  localStorage.setItem(LOCAL_KEY, JSON.stringify({ id: myId, profil: myProfil }));
+
+  // Enregistrer dans Firebase
+  await db.ref(`soirees/${SOIREE_ID}/participants/${myId}`).set({
+    ...myProfil,
+    joinedAt: Date.now()
+  });
+
+  enterApp();
+}
+
+// ─── ENTER APP ─────────────────────────────────────────────────────────────
+function enterApp() {
+  applyProfil();
+  showTab('discover');
+  loadParticipants();
+  listenCrushesReceived();
+  listenMatches();
+}
+
+function applyProfil() {
+  if (!myProfil) return;
+  document.getElementById('profil-initial').textContent = myProfil.prenom[0].toUpperCase();
+  document.getElementById('profil-name').textContent = myProfil.prenom + (myProfil.age ? ', ' + myProfil.age + ' ans' : '');
+  document.getElementById('profil-reponse').textContent = myProfil.reponse || '—';
+  // Labels soirée dynamiques
+  const lbl = SOIREE_LABEL;
+  ['disc-soiree-label','matches-soiree-label','profil-soiree-label'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = lbl;
+  });
+  // Label inscription
+  document.getElementById('inscription-soiree-sub').textContent = lbl;
+  const motsEl = document.getElementById('profil-mots');
+  motsEl.innerHTML = '';
+  (myProfil.mots || []).forEach(m => {
+    const s = document.createElement('span');
+    s.className = 'pc-mot';
+    s.textContent = m;
+    motsEl.appendChild(s);
+  });
+}
+
+// ─── PARTICIPANTS ──────────────────────────────────────────────────────────
+function loadParticipants() {
+  db.ref(`soirees/${SOIREE_ID}/participants`).on('value', async snap => {
+    const all = snap.val() || {};
+    const others = Object.entries(all).filter(([id]) => id !== myId);
+
+    // Récupérer mes crushes envoyés
+    const crushSnap = await db.ref(`soirees/${SOIREE_ID}/crushes/${myId}`).get();
+    const myCrushes = crushSnap.val() || {};
+
+    // Récupérer les crushes reçus
+    const recvSnap = await db.ref(`soirees/${SOIREE_ID}/crushes`).get();
+    const allCrushes = recvSnap.val() || {};
+    const crushesOnMe = {};
+    Object.entries(allCrushes).forEach(([uid, targets]) => {
+      if (targets[myId] && uid !== myId) crushesOnMe[uid] = true;
+    });
+
+    // Récupérer mes matches validés
+    const matchSnap = await db.ref(`soirees/${SOIREE_ID}/matches/${myId}`).get();
+    const myMatches = matchSnap.val() || {};
+
+    document.getElementById('disc-count').textContent = others.length + ' présents';
+
+    const list = document.getElementById('cards-list');
+    if (others.length === 0) {
+      list.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--dim);font-size:14px;">Tu es le premier arrivé !<br>Les autres profils apparaîtront ici.</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    others.forEach(([uid, p]) => {
+      const iCrushed = !!myCrushes[uid];
+      const theyCrushed = !!crushesOnMe[uid];
+      const isMatch = iCrushed && theyCrushed;
+      const card = document.createElement('div');
+      card.className = 'person-card' + (iCrushed ? ' crushed' : '') + (theyCrushed && !iCrushed ? ' crushed-back' : '');
+      card.id = 'card-' + uid;
+      const initial = p.prenom ? p.prenom[0].toUpperCase() : '?';
+      const avatarColors = ['#6C3FC5','#A67FF5','#534AB7','#3C3489','#7F77DD'];
+      const color = avatarColors[Math.abs(uid.charCodeAt(5) || 0) % avatarColors.length];
+      card.innerHTML = `
+        <div class="pc-photo" style="background:${color}22;">
+          ${theyCrushed ? '<div class="pc-crush-tag">&#128149; t\'a crushed</div>' : ''}
+          <div class="pc-avatar" style="background:${color};">${initial}</div>
+          <div class="pc-tag">Ce soir</div>
+        </div>
+        <div class="pc-body">
+          <div class="pc-name">${p.prenom || '?'}</div>
+          <div class="pc-age">${p.age ? p.age + ' ans' : ''}</div>
+          <div class="pc-mots">${(p.mots||[]).map(m=>`<span class="pc-mot">${m}</span>`).join('')}</div>
+          ${p.reponse ? `<div class="pc-reponse"><div class="pr-q">La chose la plus folle faite spontanément</div><div class="pr-a">"${p.reponse}"</div></div>` : ''}
+          <div class="pc-actions">
+            <button class="btn-crush ${iCrushed?'active':''}" id="crush-btn-${uid}" onclick="toggleCrush('${uid}','${p.prenom||'?'}','${initial}','${color}')">${iCrushed ? '&#128149; Crushé !' : 'Crusher'}</button>
+            <button class="btn-pass">Passer</button>
+          </div>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+
+    updateStats(Object.keys(myCrushes).length, Object.keys(crushesOnMe).length, Object.keys(myMatches).length);
+  });
+}
+
+// ─── CRUSH ─────────────────────────────────────────────────────────────────
+async function toggleCrush(uid, prenom, initial, color) {
+  const btn = document.getElementById('crush-btn-' + uid);
+  const card = document.getElementById('card-' + uid);
+  const crushRef = db.ref(`soirees/${SOIREE_ID}/crushes/${myId}/${uid}`);
+  const snap = await crushRef.get();
+
+  if (!snap.val()) {
+    await crushRef.set(true);
+    btn.innerHTML = '&#128149; Crushé !';
+    btn.classList.add('active');
+    card.classList.add('crushed');
+
+    // Vérifier si match
+    const theirCrush = await db.ref(`soirees/${SOIREE_ID}/crushes/${uid}/${myId}`).get();
+    if (theirCrush.val()) {
+      // C'est un match ! Montrer la modal
+      pendingMatchPerson = { uid, prenom, initial, color };
+      openMatchModal(prenom, initial, color);
+    }
+  } else {
+    await crushRef.remove();
+    btn.innerHTML = 'Crusher';
+    btn.classList.remove('active');
+    card.classList.remove('crushed');
+  }
+}
+
+// ─── LISTEN CRUSHES RECEIVED ───────────────────────────────────────────────
+function listenCrushesReceived() {
+  db.ref(`soirees/${SOIREE_ID}/crushes`).on('value', snap => {
+    const all = snap.val() || {};
+    let count = 0;
+    Object.entries(all).forEach(([uid, targets]) => {
+      if (uid !== myId && targets[myId]) count++;
+    });
+    const badge = document.getElementById('matches-nav-badge');
+    if (count > 0) {
+      badge.setAttribute('data-count', count);
+    } else {
+      badge.removeAttribute('data-count');
+    }
+  });
+}
+
+// ─── MATCHES ───────────────────────────────────────────────────────────────
+function listenMatches() {
+  db.ref(`soirees/${SOIREE_ID}`).on('value', async snap => {
+    const data = snap.val() || {};
+    const participants = data.participants || {};
+    const allCrushes = data.crushes || {};
+    const allMatches = data.matches || {};
+
+    const myCrushes = allCrushes[myId] || {};
+    const myValidated = allMatches[myId] || {};
+
+    // Qui m'a crushé
+    const crushesOnMe = {};
+    Object.entries(allCrushes).forEach(([uid, targets]) => {
+      if (uid !== myId && targets && targets[myId]) crushesOnMe[uid] = true;
+    });
+
+    // Matches mutuels
+    const mutualMatches = Object.keys(myCrushes).filter(uid => crushesOnMe[uid]);
+
+    const content = document.getElementById('matches-content');
+    content.innerHTML = '';
+
+    // Bannière crushes reçus
+    const recvCount = Object.keys(crushesOnMe).length;
+    if (recvCount > 0) {
+      const banner = document.createElement('div');
+      banner.className = 'crush-banner';
+      banner.innerHTML = `
+        <div class="cb-icon">&#128149;</div>
+        <div class="cb-text">
+          <div class="cb-title">${recvCount} personne${recvCount > 1 ? 's' : ''} t'a${recvCount > 1 ? 'ont' : ''} crushed ce soir</div>
+          <div class="cb-sub">Voir qui ci-dessous</div>
+        </div>
+      `;
+      content.appendChild(banner);
+    }
+
+    // Section matches mutuels
+    if (mutualMatches.length > 0) {
+      const sec = document.createElement('div');
+      sec.className = 'match-section';
+      sec.innerHTML = '<div class="section-label">Matches mutuels</div>';
+      mutualMatches.forEach(uid => {
+        const p = participants[uid] || {};
+        const validated = myValidated[uid];
+        const item = document.createElement('div');
+        item.className = 'match-item is-match';
+        const initial = p.prenom ? p.prenom[0].toUpperCase() : '?';
+        const avatarColors = ['#6C3FC5','#A67FF5','#534AB7','#3C3489','#7F77DD'];
+        const color = avatarColors[Math.abs((uid.charCodeAt(5)||0)) % avatarColors.length];
+        item.innerHTML = `
+          <div class="mi-avatar" style="background:${color};">${initial}<div class="mi-dot">&#10084;</div></div>
+          <div class="mi-info">
+            <div class="mi-name">${p.prenom || '?'}</div>
+            <div class="mi-preview">${validated ? intentionLabels[validated] || validated : 'Match mutuel · Valide pour continuer'}</div>
+          </div>
+          <div class="mi-badge ${validated ? 'validated' : 'match'}">${validated ? '&#10003;' : 'Match'}</div>
+        `;
+        if (validated) {
+          item.onclick = () => openChat(uid, p.prenom, initial, color, validated);
+        } else {
+          item.onclick = () => { pendingMatchPerson = {uid, prenom: p.prenom, initial, color}; openMatchModal(p.prenom, initial, color); };
+        }
+        sec.appendChild(item);
+      });
+      content.appendChild(sec);
+    }
+
+    // Section crushes reçus (non mutuels)
+    const nonMutual = Object.keys(crushesOnMe).filter(uid => !myCrushes[uid]);
+    if (nonMutual.length > 0) {
+      const sec = document.createElement('div');
+      sec.className = 'match-section';
+      sec.innerHTML = '<div class="section-label">Qui t\'a crushed</div>';
+      nonMutual.forEach(uid => {
+        const p = participants[uid] || {};
+        const item = document.createElement('div');
+        item.className = 'match-item';
+        const initial = p.prenom ? p.prenom[0].toUpperCase() : '?';
+        const avatarColors = ['#6C3FC5','#A67FF5','#534AB7','#3C3489','#7F77DD'];
+        const color = avatarColors[Math.abs((uid.charCodeAt(5)||0)) % avatarColors.length];
+        item.innerHTML = `
+          <div class="mi-avatar" style="background:${color};">${initial}</div>
+          <div class="mi-info">
+            <div class="mi-name">${p.prenom || '?'}</div>
+            <div class="mi-preview">A crushed sur toi ce soir</div>
+          </div>
+          <div class="mi-badge crush">Crush</div>
+        `;
+        content.appendChild(item);
+        sec.appendChild(item);
+      });
+      content.appendChild(sec);
+    }
+
+    // Section mes crushes envoyés (sans retour)
+    const sentNoReturn = Object.keys(myCrushes).filter(uid => !crushesOnMe[uid]);
+    if (sentNoReturn.length > 0) {
+      const sec = document.createElement('div');
+      sec.className = 'match-section';
+      sec.innerHTML = '<div class="section-label">Mes crushes envoyés</div>';
+      sentNoReturn.forEach(uid => {
+        const p = participants[uid] || {};
+        const item = document.createElement('div');
+        item.className = 'match-item';
+        const initial = p.prenom ? p.prenom[0].toUpperCase() : '?';
+        item.innerHTML = `
+          <div class="mi-avatar">${initial}</div>
+          <div class="mi-info">
+            <div class="mi-name">${p.prenom || '?'}</div>
+            <div class="mi-preview">Tu as crushed sur cette personne</div>
+          </div>
+          <div class="mi-badge crush">&#128149;</div>
+        `;
+        sec.appendChild(item);
+      });
+      content.appendChild(sec);
+    }
+
+    if (recvCount === 0 && mutualMatches.length === 0 && Object.keys(myCrushes).length === 0) {
+      content.innerHTML = '<div class="no-content">Tes connexions apparaîtront ici<br>au fil de la soirée.</div>';
+    }
+
+    updateStats(Object.keys(myCrushes).length, recvCount, Object.keys(myValidated).length);
+  });
+}
+
+// ─── MODAL INTENTION ───────────────────────────────────────────────────────
+function openMatchModal(prenom, initial, color) {
+  selectedIntentionValue = null;
+  document.querySelectorAll('.intention-btn').forEach(b => b.classList.remove('selected'));
+  const btn = document.getElementById('modal-validate');
+  btn.style.opacity = '0.4';
+  btn.style.pointerEvents = 'none';
+  document.getElementById('modal-avatar').textContent = initial;
+  document.getElementById('modal-avatar').style.background = color;
+  document.getElementById('modal-title').textContent = 'Match avec ' + prenom + ' !';
+  document.getElementById('modal-sub').innerHTML = `Vous vous êtes crushés mutuellement.<br>Comment tu vois la suite ?`;
+  document.getElementById('modal-intention').classList.remove('hidden');
+}
+
+function selectIntention(el, val) {
+  document.querySelectorAll('.intention-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedIntentionValue = val;
+  const btn = document.getElementById('modal-validate');
+  btn.style.opacity = '1';
+  btn.style.pointerEvents = 'auto';
+}
+
+async function validateMatch() {
+  if (!selectedIntentionValue || !pendingMatchPerson) return;
+  const { uid, prenom, initial, color } = pendingMatchPerson;
+  await db.ref(`soirees/${SOIREE_ID}/matches/${myId}/${uid}`).set(selectedIntentionValue);
+  closeModal();
+  showCelebration(prenom, initial, color, selectedIntentionValue);
+}
+
+function closeModal() {
+  document.getElementById('modal-intention').classList.add('hidden');
+  pendingMatchPerson = null;
+}
+
+// ─── CELEBRATION ───────────────────────────────────────────────────────────
+function showCelebration(prenom, initial, color, intention) {
+  document.getElementById('celeb-av1').textContent = myProfil.prenom[0].toUpperCase();
+  document.getElementById('celeb-av2').textContent = initial;
+  document.getElementById('celeb-av2').style.background = color;
+  document.getElementById('celeb-sub').innerHTML = `Toi et ${prenom} vous êtes connectés ce soir.<br>La suite commence maintenant.`;
+  document.getElementById('celeb-intention').innerHTML = intentionLabels[intention] || intention;
+  document.getElementById('celebration').classList.remove('hidden');
+}
+
+function closeCelebration() {
+  document.getElementById('celebration').classList.add('hidden');
+  if (pendingMatchPerson) {
+    const { uid, prenom, initial, color } = pendingMatchPerson;
+    openChat(uid, prenom, initial, color, selectedIntentionValue);
+  } else {
+    showTab('matches');
+  }
+}
+
+// ─── CHAT ──────────────────────────────────────────────────────────────────
+function openChat(uid, prenom, initial, color, intention) {
+  currentChatPerson = { uid, prenom, initial, color };
+  document.getElementById('chat-avatar').textContent = initial;
+  document.getElementById('chat-avatar').style.background = color;
+  document.getElementById('chat-name').textContent = prenom;
+  document.getElementById('chat-intention').innerHTML = intentionLabels[intention] || 'Match depuis ce soir';
+  const msgs = document.getElementById('chat-messages');
+  msgs.innerHTML = '<div style="text-align:center;font-size:12px;color:var(--dim);padding:8px 0;">Vous vous êtes rencontrés ce soir à la Soirée Étincelle</div>';
+
+  // Écouter les messages Firebase
+  const chatKey = [myId, uid].sort().join('_');
+  db.ref(`soirees/${SOIREE_ID}/chats/${chatKey}`).on('value', snap => {
+    const data = snap.val() || {};
+    msgs.innerHTML = '<div style="text-align:center;font-size:12px;color:var(--dim);padding:8px 0;">Vous vous êtes rencontrés ce soir à la Soirée Étincelle</div>';
+    Object.values(data).sort((a,b) => a.ts - b.ts).forEach(m => {
+      appendMsg(m.senderId === myId ? 'sent' : 'recv', m.text, m.time);
+    });
+    msgs.scrollTop = msgs.scrollHeight;
+  });
+
+  showScreen('chat');
+}
+
+function appendMsg(type, text, time) {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + type;
+  div.innerHTML = `<div class="msg-bubble">${text}</div><div class="msg-time">${time}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text || !currentChatPerson) return;
+  const now = new Date();
+  const time = now.getHours() + 'h' + String(now.getMinutes()).padStart(2,'0');
+  const chatKey = [myId, currentChatPerson.uid].sort().join('_');
+  await db.ref(`soirees/${SOIREE_ID}/chats/${chatKey}`).push({
+    senderId: myId,
+    text, time, ts: Date.now()
+  });
+  input.value = '';
+  input.style.height = 'auto';
+}
+
+// ─── STATS ─────────────────────────────────────────────────────────────────
+function updateStats(sent, recv, matched) {
+  document.getElementById('stat-crushes-sent').textContent = sent;
+  document.getElementById('stat-crushes-recv').textContent = recv;
+  document.getElementById('stat-matches').textContent = matched;
+}
+
+// ─── NAV ───────────────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showTab(tab) {
+  showScreen(tab);
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  // Activer le bon nav-item dans l'écran actif
+  const activeScreen = document.getElementById(tab);
+  if (activeScreen) {
+    const navItems = activeScreen.querySelectorAll('.nav-bar .nav-item');
+    const tabOrder = ['discover','matches','agenda','profil'];
+    const idx = tabOrder.indexOf(tab);
+    if (idx >= 0 && navItems[idx]) navItems[idx].classList.add('active');
+  }
+}
+
+// ─── LOGOUT ────────────────────────────────────────────────────────────────
+function logout() {
+  myId = null; myProfil = null;
+  localStorage.removeItem(LOCAL_KEY);
+  renderSplash();
+  showScreen('splash');
+}
+
+async function resetAll() {
+  if (!confirm('Effacer ton profil et quitter la soirée ?')) return;
+  if (myId) await db.ref(`soirees/${SOIREE_ID}/participants/${myId}`).remove();
+  logout();
+}
+
+// ─── UTILS ─────────────────────────────────────────────────────────────────
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+// ─── START ─────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
