@@ -664,7 +664,7 @@ const db = firebase.database();
 
 // ─── SOIRÉES PILOTES ───────────────────────────────────────────────────────
 const SOIREES_DATA = [
-  { id: 'soiree_etincelle_juin2026', nom: '✨ Soirée Étincelle', date: 'Jeudi 25 juin 2026', label: 'Soirée Étincelle · 25 juin', lieu: 'Bar Le Cosmos · Paris', horaire: '19h30 – 23h00', tarif: '15€/pers · Gratuit pour les femmes', format: '25-35 ans · Dynamique, fun, décomplexée', ts: new Date('2026-06-25').getTime() },
+  { id: 'soiree_etincelle_juin2025', nom: '✨ Soirée Étincelle', date: 'Jeudi 25 juin 2026', label: 'Soirée Étincelle · 25 juin', lieu: 'Bar Le Cosmos · Paris', horaire: '19h30 – 23h00', tarif: '15€/pers · Gratuit pour les femmes', format: '25-35 ans · Dynamique, fun, décomplexée', ts: new Date('2026-06-25').getTime() },
   { id: 'soiree_confluence_juillet2026', nom: '🌊 Soirée Confluence', date: 'Jeudi 9 juillet 2026', label: 'Soirée Confluence · 9 juil.', lieu: 'Bar Le Cosmos · Paris', horaire: '19h30 – 23h00', tarif: '20€/pers · Gratuit pour les femmes', format: '35-45 ans · Équilibre, profondeur, sincérité', ts: new Date('2026-07-09').getTime() },
   { id: 'soiree_lumiere_aout2026', nom: '🌟 Soirée Lumière', date: 'Jeudi 27 août 2026', label: 'Soirée Lumière · 27 août', lieu: 'Bar Le Cosmos · Paris', horaire: '19h30 – 23h00', tarif: '15€/pers · Gratuit pour les femmes', format: 'Tous âges · Rentrée, nouvelles rencontres', ts: new Date('2026-08-27').getTime() },
 ];
@@ -912,14 +912,23 @@ async function toggleCrush(uid, prenom, initial, color) {
   const snap = await crushRef.get();
   if (!snap.val()) {
     await crushRef.set(true);
-    btn.innerHTML = '💗 Crushé!'; btn.classList.add('active'); card.classList.add('crushed');
-    // Notif à l'autre
+    btn.innerHTML = '💗 Crushé!'; btn.classList.add('active');
+    if (card) card.classList.add('crushed');
     await db.ref(`soirees/${SOIREE_ID}/notifications/${uid}`).push({ type: 'crush', from: myProfil.prenom, ts: Date.now() });
+    // Vérifier crush réciproque
     const theirCrush = await db.ref(`soirees/${SOIREE_ID}/crushes/${uid}/${myId}`).get();
-    if (theirCrush.val()) { pendingMatchPerson = { uid, prenom, initial, color }; openMatchModal(prenom, initial, color); }
+    if (theirCrush.val()) {
+      // Vérifier si match déjà validé
+      const alreadyMatched = await db.ref(`soirees/${SOIREE_ID}/matches/${myId}/${uid}`).get();
+      if (!alreadyMatched.val()) {
+        pendingMatchPerson = { uid, prenom, initial, color };
+        openMatchModal(prenom, initial, color);
+      }
+    }
   } else {
     await crushRef.remove();
-    btn.innerHTML = 'Crusher'; btn.classList.remove('active'); card.classList.remove('crushed');
+    btn.innerHTML = 'Crusher'; btn.classList.remove('active');
+    if (card) card.classList.remove('crushed');
   }
 }
 
@@ -981,7 +990,14 @@ function listenMatches() {
         const validated = myValidated[uid];
         const item = document.createElement('div');
         item.className = 'match-item is-match';
-        item.onclick = () => openChat(uid, p.prenom||'?', initial, color, validated);
+        item.onclick = () => {
+          pendingMatchPerson = { uid, prenom: p.prenom||'?', initial, color };
+          if (validated) {
+            openChat(uid, p.prenom||'?', initial, color, validated);
+          } else {
+            openMatchModal(p.prenom||'?', initial, color);
+          }
+        };
         item.innerHTML = `<div class="mi-avatar" style="background:${color};">${initial}<div class="mi-dot">💜</div></div><div class="mi-info"><div class="mi-name">${p.prenom||'?'}</div><div class="mi-preview">${validated?intentionLabels[validated]:'Touchez pour ouvrir le chat'}</div></div><div class="mi-badge ${validated?'validated':'match'}">${validated?'✓':''}</div>`;
         sec.appendChild(item);
       });
@@ -1008,7 +1024,7 @@ function listenMatches() {
       sentNoReturn.forEach(uid => {
         const p = participants[uid] || {}; const initial = p.prenom?p.prenom[0].toUpperCase():'?';
         const item = document.createElement('div'); item.className = 'match-item';
-        item.innerHTML = `<div class="mi-avatar">${initial}</div><div class="mi-info"><div class="mi-name">${p.prenom||'?'}</div><div class="mi-preview">Tu as crushed sur cette personne</div></div><div class="mi-badge crush">💗</div>`;
+        item.innerHTML = `<div class="mi-avatar">${initial}</div><div class="mi-info"><div class="mi-name">${p.prenom||'?'}</div><div class="mi-preview">Tu as crushed · En attente</div></div><div class="mi-badge crush">💗</div>`;
         sec.appendChild(item);
       });
       content.appendChild(sec);
@@ -1061,7 +1077,9 @@ function showCelebration(prenom, initial, color, intention) {
 
 function closeCelebration() {
   document.getElementById('celebration').classList.add('hidden');
-  if (pendingMatchPerson) { const { uid, prenom, initial, color } = pendingMatchPerson; openChat(uid, prenom, initial, color, selectedIntentionValue); }
+  const p = pendingMatchPerson;
+  pendingMatchPerson = null;
+  if (p) { openChat(p.uid, p.prenom, p.initial, p.color, selectedIntentionValue); }
   else showTab('matches');
 }
 
@@ -1069,9 +1087,9 @@ function closeCelebration() {
 function openChat(uid, prenom, initial, color, intention) {
   currentChatPerson = { uid, prenom, initial, color };
   document.getElementById('chat-avatar').textContent = initial;
-  document.getElementById('chat-avatar').style.background = color;
+  document.getElementById('chat-avatar').style.background = color || '#6C3FC5';
   document.getElementById('chat-name').textContent = prenom;
-  document.getElementById('chat-intention').innerHTML = intentionLabels[intention] || 'Match depuis ce soir';
+  document.getElementById('chat-intention').innerHTML = intentionLabels[intention] || 'Connexion de la soirée';
   const msgs = document.getElementById('chat-messages');
   msgs.innerHTML = '<div style="text-align:center;font-size:12px;color:var(--dim);padding:8px 0;">Vous vous êtes rencontrés ce soir</div>';
   const chatKey = [myId, uid].sort().join('_');
