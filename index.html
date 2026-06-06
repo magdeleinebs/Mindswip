@@ -694,9 +694,20 @@ const intentionLabels = { verre:'☕ OK pour un verre', aventure:'✨ Tentons l\
 
 // ─── INIT ──────────────────────────────────────────────────────────────────
 function init() {
+  // Compatible avec ancien format (v1/v2) et nouveau
   const saved = localStorage.getItem(LOCAL_KEY);
-  if (saved) {
-    try { const d = JSON.parse(saved); myId = d.id; myProfil = d.profil; SOIREE_ID = d.soireeId || SOIREE_ID; SOIREE_LABEL = d.soireeLabel || SOIREE_LABEL; } catch(e) {}
+  const savedOld = localStorage.getItem('mindswipe_profil_v1');
+  const raw = saved || savedOld;
+  if (raw) {
+    try {
+      const d = JSON.parse(raw);
+      myId = d.id;
+      // Ancien format : { id, profil: { prenom, age... } }
+      // Nouveau format : { id, profil, soireeId, soireeLabel }
+      myProfil = d.profil || null;
+      if (d.soireeId) SOIREE_ID = d.soireeId;
+      if (d.soireeLabel) SOIREE_LABEL = d.soireeLabel;
+    } catch(e) {}
   }
   renderAgenda();
   renderSoireeSelector();
@@ -709,7 +720,18 @@ function init() {
 function renderSplash() {
   const btn = document.getElementById('splash-btns');
   if (myProfil) {
-    btn.innerHTML = `<div class="saved-banner"><div class="sb-hello">Bon retour, ${myProfil.prenom} !</div><div class="sb-sub">Ton profil est sauvegardé ✓</div></div><button class="btn-primary" onclick="enterApp()">Rejoindre la soirée</button><button class="btn-ghost" onclick="showScreen('inscription')">Modifier mon profil</button>`;
+    const soireeOptions = SOIREES_DATA.filter(s => s.ts >= Date.now() - 86400000).map(s =>
+      `<div class="soiree-choice ${s.id === SOIREE_ID ? 'selected' : ''}" onclick="selectSoiree('${s.id}','${s.label}');renderSplash();"><div style="font-size:15px;font-weight:500;color:#fff;">${s.nom}</div><div style="font-size:12px;color:var(--vl);margin-top:2px;">${s.date}</div></div>`
+    ).join('');
+    btn.innerHTML = `
+      <div class="saved-banner">
+        <div class="sb-hello">Bon retour, ${myProfil.prenom} !</div>
+        <div class="sb-sub">Choisis ta soirée</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;width:100%;">${soireeOptions}</div>
+      <button class="btn-primary" onclick="enterApp()">Rejoindre la soirée</button>
+      <button class="btn-ghost" onclick="showScreen('inscription')">Modifier mon profil</button>
+    `;
   } else {
     btn.innerHTML = `<button class="btn-primary" onclick="showScreen('inscription')">Créer mon profil</button>`;
   }
