@@ -3,9 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1A1035">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MindSwipe">
+<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;MindSwipe&quot;,&quot;short_name&quot;:&quot;MindSwipe&quot;,&quot;start_url&quot;:&quot;/&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#1A1035&quot;,&quot;theme_color&quot;:&quot;#6C3FC5&quot;}">
 <title>MindSwipe</title>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0D0820; min-height: 100svh; display: flex; justify-content: center; align-items: center; }
@@ -13,15 +19,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .screen { display: none; flex-direction: column; height: 100%; overflow: hidden; }
 .screen.active { display: flex; animation: fadeIn 0.25s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
-/* TOKENS */
-:root {
-  --v: #6C3FC5; --vl: #A67FF5; --vd: #2D1F5E;
-  --n: #1A1035; --g: #A89FC2; --dim: #6B5FAD;
-  --card: #2D1F5E; --border: #3D2A7E;
-}
-
-/* SHARED */
+:root { --v: #6C3FC5; --vl: #A67FF5; --vd: #2D1F5E; --n: #1A1035; --g: #A89FC2; --dim: #6B5FAD; --card: #2D1F5E; --border: #3D2A7E; }
 .btn-primary { background: var(--v); color: #fff; border: none; border-radius: 50px; padding: 16px; font-size: 16px; font-weight: 500; cursor: pointer; width: 100%; }
 .btn-primary:active { opacity: 0.85; transform: scale(0.98); }
 .btn-ghost { background: transparent; color: var(--vl); border: 1px solid var(--vd); border-radius: 50px; padding: 14px; font-size: 15px; cursor: pointer; width: 100%; }
@@ -40,8 +38,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .screen-sub { font-size: 13px; color: var(--g); margin-top: 4px; }
 .page-header { padding: max(56px, env(safe-area-inset-top)) 20px 16px; flex-shrink: 0; }
 .scrollable { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-
-/* SPLASH */
 #splash { background: var(--n); justify-content: center; align-items: center; gap: 0; }
 .logo-text { font-size: 36px; font-weight: 300; color: #fff; letter-spacing: -0.02em; }
 .logo-text span { color: var(--vl); font-weight: 500; }
@@ -49,18 +45,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .saved-banner { background: var(--vd); border: 1px solid var(--v); border-radius: 14px; padding: 14px 18px; text-align: center; }
 .sb-hello { font-size: 16px; font-weight: 500; color: #fff; }
 .sb-sub { font-size: 12px; color: var(--vl); margin-top: 3px; }
-
-/* INSCRIPTION */
 #inscription { background: var(--n); }
 .genre-row { display: flex; gap: 10px; }
 .genre-btn { flex: 1; background: var(--vd); border: 1px solid var(--border); border-radius: 12px; padding: 14px; font-size: 14px; color: var(--g); cursor: pointer; text-align: center; transition: all 0.2s; }
 .genre-btn.selected { background: var(--v); border-color: var(--v); color: #fff; }
-.photo-zone { background: var(--vd); border: 1.5px dashed var(--v); border-radius: 16px; padding: 28px; text-align: center; cursor: pointer; }
 .mots-grid { display: flex; flex-wrap: wrap; gap: 8px; }
 .mot-pill { background: var(--vd); border: 1px solid var(--border); border-radius: 20px; padding: 8px 14px; font-size: 13px; color: var(--g); cursor: pointer; user-select: none; transition: all 0.15s; }
 .mot-pill.selected { background: var(--v); border-color: var(--v); color: #fff; }
-
-/* DISCOVER */
+.questionnaire-option { background: var(--vd); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 10px; }
+.questionnaire-option.selected { background: var(--v); border-color: var(--v); }
+.questionnaire-option .qo-emoji { font-size: 18px; }
+.questionnaire-option .qo-label { font-size: 14px; color: var(--g); }
+.questionnaire-option.selected .qo-label { color: #fff; }
 #discover { background: var(--n); }
 .disc-header { padding: max(56px, env(safe-area-inset-top)) 20px 14px; display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0; }
 .soiree-pill { background: var(--vd); border-radius: 20px; padding: 6px 12px; font-size: 12px; color: var(--vl); font-weight: 500; }
@@ -85,8 +81,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .btn-crush.active { background: #A67FF5; }
 .btn-crush:active { transform: scale(0.97); }
 .btn-pass { background: transparent; border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; font-size: 14px; color: var(--dim); cursor: pointer; }
-
-/* MATCHES */
 #matches { background: var(--n); }
 .section-label { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500; padding: 0 20px; margin-bottom: 10px; }
 .match-section { margin-bottom: 24px; }
@@ -103,15 +97,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .mi-badge.match { background: var(--v); color: #fff; }
 .mi-badge.validated { background: #1A4035; color: #5DCAA5; }
 .no-content { text-align: center; padding: 40px 30px; color: var(--dim); font-size: 14px; line-height: 1.7; }
-
-/* CRUSH COUNTER BANNER */
 .crush-banner { margin: 0 20px 16px; background: var(--vd); border: 1px solid var(--v); border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
-.cb-icon { font-size: 28px; }
-.cb-text { flex: 1; }
-.cb-title { font-size: 14px; font-weight: 500; color: #fff; }
-.cb-sub { font-size: 12px; color: var(--vl); margin-top: 2px; }
-
-/* MODAL MATCH */
 .modal-overlay { position: absolute; inset: 0; background: rgba(13,8,32,0.92); display: flex; align-items: flex-end; justify-content: center; z-index: 100; }
 .modal-overlay.hidden { display: none; }
 .modal-sheet { background: #1E1240; border-radius: 28px 28px 0 0; padding: 28px 24px max(32px, env(safe-area-inset-bottom)); width: 100%; }
@@ -128,8 +114,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .ib-sub { font-size: 12px; color: var(--g); margin-top: 2px; }
 .intention-btn.selected .ib-sub { color: #D4BBFF; }
 .btn-skip { background: transparent; border: none; color: var(--dim); font-size: 14px; cursor: pointer; width: 100%; padding: 10px; }
-
-/* MATCH CELEBRATION */
 .celebration-overlay { position: absolute; inset: 0; background: var(--n); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 200; gap: 20px; padding: 40px; text-align: center; }
 .celebration-overlay.hidden { display: none; }
 .confetti-area { font-size: 48px; animation: bounce 0.6s ease infinite alternate; }
@@ -141,8 +125,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .celeb-title { font-size: 26px; font-weight: 500; color: #fff; }
 .celeb-sub { font-size: 14px; color: var(--g); line-height: 1.6; }
 .celeb-intention { background: var(--vd); border: 1px solid var(--v); border-radius: 14px; padding: 12px 20px; font-size: 14px; color: var(--vl); font-weight: 500; }
-
-/* CHAT */
 #chat { background: var(--n); }
 .chat-header { padding: max(56px, env(safe-area-inset-top)) 20px 14px; display: flex; align-items: center; gap: 14px; border-bottom: 0.5px solid var(--vd); flex-shrink: 0; }
 .chat-back { font-size: 22px; color: var(--vl); cursor: pointer; }
@@ -159,8 +141,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .chat-input-bar { padding: 10px 16px max(20px, env(safe-area-inset-bottom)); border-top: 0.5px solid var(--vd); display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0; }
 .chat-input { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 22px; padding: 10px 16px; font-size: 15px; color: #fff; outline: none; resize: none; max-height: 100px; font-family: inherit; }
 .chat-send { width: 40px; height: 40px; background: var(--v); border: none; border-radius: 50%; cursor: pointer; color: #fff; font-size: 18px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-
-/* PROFIL */
 #profil { background: var(--n); }
 .profil-top { padding: max(56px, env(safe-area-inset-top)) 20px 20px; text-align: center; flex-shrink: 0; }
 .profil-av { width: 96px; height: 96px; border-radius: 50%; background: var(--v); display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 500; color: #fff; margin: 0 auto 14px; border: 3px solid var(--vl); }
@@ -172,18 +152,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .ps-row-label { font-size: 14px; color: var(--g); }
 .ps-row-val { font-size: 14px; color: #D4BBFF; font-weight: 500; }
 .btn-deconnect { width: calc(100% - 40px); margin: 4px 20px; background: transparent; border: 1px solid var(--border); border-radius: 12px; padding: 14px; color: var(--dim); font-size: 14px; cursor: pointer; }
-.btn-danger { width: calc(100% - 40px); margin: 4px 20px 32px; background: transparent; border: 1px solid #A32D2D; border-radius: 12px; padding: 14px; color: #E24B4A; font-size: 14px; cursor: pointer; }
-
-/* LOADING */
+.btn-danger { width: calc(100% - 40px); margin: 4px 20px 12px; background: transparent; border: 1px solid #A32D2D; border-radius: 12px; padding: 14px; color: #E24B4A; font-size: 14px; cursor: pointer; }
 .loading-screen { position: absolute; inset: 0; background: var(--n); display: flex; align-items: center; justify-content: center; z-index: 300; flex-direction: column; gap: 16px; }
 .loading-screen.hidden { display: none; }
 .spinner { width: 36px; height: 36px; border: 3px solid var(--vd); border-top-color: var(--v); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-
 /* AGENDA */
 #agenda { background: var(--n); }
 .agenda-card { background: var(--card); border-radius: 20px; margin: 0 20px 14px; border: 1px solid var(--border); overflow: hidden; }
 .agenda-card.upcoming { border-color: var(--v); }
+.agenda-card.past { opacity: 0.6; }
 .agenda-card-header { padding: 14px 16px 10px; display: flex; justify-content: space-between; align-items: flex-start; }
 .agenda-name { font-size: 17px; font-weight: 500; color: #fff; }
 .agenda-format { font-size: 12px; color: var(--vl); margin-top: 3px; }
@@ -191,18 +169,43 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .agenda-badge.past { background: var(--vd); color: var(--dim); }
 .agenda-details { padding: 0 16px 14px; display: flex; flex-direction: column; gap: 6px; }
 .agenda-detail-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--g); }
-.agenda-detail-row span:first-child { font-size: 15px; }
 .agenda-join-btn { margin: 0 16px 14px; background: var(--v); color: #fff; border: none; border-radius: 12px; padding: 12px; font-size: 14px; font-weight: 500; cursor: pointer; width: calc(100% - 32px); }
-.agenda-join-btn:active { opacity: 0.85; }
-
-/* SOIREE SELECTOR */
-.soiree-selector { display: flex; flex-direction: column; gap: 12px; }
-.soiree-choice { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; cursor: pointer; transition: all 0.2s; }
-.soiree-choice:active { transform: scale(0.98); }
+.soiree-choice { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; cursor: pointer; transition: all 0.2s; margin-bottom: 10px; }
 .soiree-choice.selected { border-color: var(--v); background: #2D1F5E; }
-.sc-name { font-size: 16px; font-weight: 500; color: #fff; }
-.sc-date { font-size: 12px; color: var(--vl); margin-top: 3px; }
-.sc-desc { font-size: 12px; color: var(--g); margin-top: 6px; line-height: 1.4; }
+/* COMMENTAIRES */
+#commentaires { background: var(--n); }
+.comment-item { background: var(--card); border-radius: 14px; padding: 14px 16px; margin: 0 20px 10px; border: 1px solid var(--border); }
+.comment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.comment-author { font-size: 13px; font-weight: 500; color: var(--vl); }
+.comment-date { font-size: 11px; color: var(--dim); }
+.comment-text { font-size: 14px; color: var(--g); line-height: 1.5; }
+.comment-input-area { padding: 12px 20px max(20px,env(safe-area-inset-bottom)); border-top: 0.5px solid var(--vd); flex-shrink: 0; }
+/* SIGNALEMENT */
+.signal-btn { position: fixed; bottom: max(100px,calc(env(safe-area-inset-bottom) + 76px)); right: 16px; width: 44px; height: 44px; background: rgba(163,45,45,0.85); border: none; border-radius: 50%; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; z-index: 50; box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
+/* NOTIFICATION TOAST */
+.toast { position: absolute; top: max(70px,env(safe-area-inset-top)); left: 16px; right: 16px; background: #1E1240; border: 1px solid var(--v); border-radius: 14px; padding: 12px 16px; z-index: 400; display: flex; align-items: center; gap: 10px; animation: slideDown 0.3s ease; }
+.toast.hidden { display: none; }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+.toast-icon { font-size: 20px; }
+.toast-text { flex: 1; font-size: 13px; color: #fff; line-height: 1.4; }
+/* RGPD */
+.rgpd-check { display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: var(--vd); border-radius: 12px; border: 1px solid var(--border); }
+.rgpd-check input[type=checkbox] { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; accent-color: var(--v); cursor: pointer; }
+.rgpd-check label { font-size: 12px; color: var(--g); line-height: 1.5; cursor: pointer; }
+.rgpd-check a { color: var(--vl); }
+/* ADMIN */
+#admin { background: var(--n); }
+.admin-section { background: var(--card); border-radius: 16px; margin: 0 20px 12px; overflow: hidden; }
+.admin-section-title { padding: 14px 16px 10px; font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500; border-bottom: 0.5px solid var(--border); }
+.admin-row { padding: 12px 16px; border-bottom: 0.5px solid var(--border); }
+.admin-row:last-child { border-bottom: none; }
+.admin-stat { display: flex; justify-content: space-between; align-items: center; }
+.admin-stat-label { font-size: 14px; color: var(--g); }
+.admin-stat-val { font-size: 20px; font-weight: 600; color: var(--vl); }
+.admin-person { font-size: 13px; color: #D4BBFF; }
+.admin-person-sub { font-size: 11px; color: var(--dim); margin-top: 2px; }
+.admin-msg-input { background: var(--vd); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; font-size: 14px; color: #fff; width: 100%; outline: none; resize: none; font-family: inherit; margin-bottom: 8px; }
+.signal-item { background: #2A0A0A; border: 1px solid #7A2020; border-radius: 14px; padding: 14px 16px; margin: 0 20px 10px; }
 </style>
 </head>
 <body>
@@ -220,6 +223,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <line x1="65" y1="36" x2="70" y2="36" stroke="#6C3FC5" stroke-width="1.2" stroke-linecap="round"/>
     </svg>
     <div class="spinner"></div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div class="toast hidden" id="toast">
+    <div class="toast-icon" id="toast-icon">💜</div>
+    <div class="toast-text" id="toast-text">Notification</div>
   </div>
 
   <!-- SPLASH -->
@@ -241,7 +250,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div id="splash-btns" style="display:flex;flex-direction:column;gap:12px;width:100%;"></div>
       <div onclick="showScreen('agenda')" style="font-size:13px;color:var(--vl);cursor:pointer;text-decoration:underline;text-underline-offset:3px;">📅 Voir l'agenda des soirées</div>
     </div>
-    <div style="padding-bottom:max(24px,env(safe-area-inset-bottom));text-align:center;font-size:12px;color:#3D2A7E;">Vis d'abord, swipe ensuite.<br><span style="font-size:10px;color:#2A1E60;">© Magdeleine BS · MindSwipe</span></div>
+    <div style="padding-bottom:max(24px,env(safe-area-inset-bottom));text-align:center;">
+      <div style="font-size:12px;color:#3D2A7E;">Vis d'abord, swipe ensuite.</div>
+      <div style="font-size:10px;color:#2A1E60;margin-top:4px;">© Magdeleine BS · MindSwipe</div>
+      <div style="margin-top:8px;display:flex;gap:16px;justify-content:center;">
+        <a onclick="showScreen('rgpd')" style="font-size:11px;color:var(--dim);cursor:pointer;text-decoration:underline;">Politique de confidentialité</a>
+        <a onclick="showScreen('cgu')" style="font-size:11px;color:var(--dim);cursor:pointer;text-decoration:underline;">CGU</a>
+      </div>
+      <!-- Admin caché : triple-tap sur le logo -->
+      <div onclick="adminTap()" style="height:20px;"></div>
+    </div>
   </div>
 
   <!-- INSCRIPTION -->
@@ -255,21 +273,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="scrollable">
       <div style="padding:0 20px 40px;display:flex;flex-direction:column;gap:16px;">
-        <!-- SÉLECTEUR DE SOIRÉE -->
         <div>
           <div class="field-label">Ta soirée</div>
-          <div class="soiree-selector" id="soiree-selector">
-            <div class="soiree-choice selected" id="sc-etincelle" onclick="selectSoiree('soiree_etincelle_juin2025','Soirée Étincelle · 12 juin','Étincelle')">
-              <div class="sc-name">✨ Soirée Étincelle</div>
-              <div class="sc-date">Jeudi 12 juin 2025 · Bar Le Cosmos</div>
-              <div class="sc-desc">25-35 ans · Dynamique, fun, décomplexée</div>
-            </div>
-            <div class="soiree-choice" id="sc-confluence" onclick="selectSoiree('soiree_confluence_juin2025','Soirée Confluence · 26 juin','Confluence')">
-              <div class="sc-name">🌊 Soirée Confluence</div>
-              <div class="sc-date">Jeudi 26 juin 2025 · Bar Le Cosmos</div>
-              <div class="sc-desc">35-45 ans · Équilibre, profondeur, sincérité</div>
-            </div>
-          </div>
+          <div id="soiree-selector"></div>
         </div>
         <div><div class="field-label">Prénom</div><input class="field-input" id="inp-prenom" placeholder="Ton prénom"></div>
         <div><div class="field-label">Âge</div><input class="field-input" id="inp-age" placeholder="Ton âge" type="number" inputmode="numeric"></div>
@@ -281,24 +287,26 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
           </div>
         </div>
         <div>
-          <div class="field-label">Photo de la soirée</div>
-          <div class="photo-zone" onclick="simulatePhoto()">
-            <div id="pz-content">
-              <div style="font-size:30px;color:var(--v);margin-bottom:8px;">&#128247;</div>
-              <div style="font-size:13px;color:var(--g);">Photo du photobooth ou de l'animatrice</div>
-            </div>
-          </div>
-        </div>
-        <div>
           <div class="field-label">3 mots qui te définissent</div>
-          <div class="mots-grid" id="mots-grid">
-            <!-- rempli dynamiquement selon le genre -->
-          </div>
+          <div class="mots-grid" id="mots-grid"></div>
         </div>
         <div>
           <div class="field-label">Ta réponse de la soirée</div>
-          <input class="field-input" id="inp-reponse" placeholder="Ta réponse au jeu...">
-          <div style="font-size:11px;color:var(--dim);margin-top:6px;">La chose la plus folle faite spontanément</div>
+          <input class="field-input" id="inp-reponse" placeholder="La chose la plus folle faite spontanément...">
+        </div>
+        <div>
+          <div class="field-label">Je viens ce soir pour...</div>
+          <div style="display:flex;flex-direction:column;gap:8px;" id="questionnaire-options">
+            <div class="questionnaire-option" onclick="toggleQuestionnaire(this,'moment')"><span class="qo-emoji">🥂</span><span class="qo-label">Passer un bon moment</span></div>
+            <div class="questionnaire-option" onclick="toggleQuestionnaire(this,'ame')"><span class="qo-emoji">💫</span><span class="qo-label">Croiser mon âme sœur</span></div>
+            <div class="questionnaire-option" onclick="toggleQuestionnaire(this,'sortir')"><span class="qo-emoji">🚀</span><span class="qo-label">Sortir de chez moi</span></div>
+            <div class="questionnaire-option" onclick="toggleQuestionnaire(this,'amis')"><span class="qo-emoji">🤝</span><span class="qo-label">Me faire des amis</span></div>
+            <div class="questionnaire-option" onclick="toggleQuestionnaire(this,'decouvrir')"><span class="qo-emoji">✨</span><span class="qo-label">Découvrir MindSwipe</span></div>
+          </div>
+        </div>
+        <div class="rgpd-check">
+          <input type="checkbox" id="rgpd-consent">
+          <label for="rgpd-consent">J'accepte la <a onclick="showScreen('rgpd')">politique de confidentialité</a> et les <a onclick="showScreen('cgu')">conditions d'utilisation</a>. Mes données sont utilisées uniquement dans le cadre de MindSwipe.</label>
         </div>
         <button class="btn-primary" onclick="saveAndContinue()" style="margin-top:8px;">Rejoindre la soirée</button>
       </div>
@@ -309,33 +317,38 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <div class="screen" id="discover">
     <div class="disc-header">
       <div>
-        <div style="font-size:21px;font-weight:500;color:#fff;" id="disc-title">Ce soir</div>
-        <div style="font-size:13px;color:var(--g);" id="disc-soiree-label">Soirée Étincelle · 12 juin</div>
+        <div style="font-size:21px;font-weight:500;color:#fff;">Ce soir</div>
+        <div style="font-size:13px;color:var(--g);" id="disc-soiree-label">...</div>
       </div>
       <div class="soiree-pill" id="disc-count">...</div>
     </div>
     <div class="scrollable">
       <div class="cards-list" id="cards-list">
-        <div style="text-align:center;padding:40px 20px;color:var(--dim);font-size:14px;">Chargement des participants...</div>
+        <div style="text-align:center;padding:40px 20px;color:var(--dim);font-size:14px;">Chargement...</div>
       </div>
     </div>
     <div class="nav-bar">
       <div class="nav-item active" onclick="showTab('discover')"><div class="nav-icon">&#10024;</div><div class="nav-label">Ce soir</div></div>
       <div class="nav-item" onclick="showTab('matches')"><div class="nav-icon nav-badge" id="matches-nav-badge">&#128140;</div><div class="nav-label">Connexions</div></div>
+      <div class="nav-item" onclick="showTab('commentaires')"><div class="nav-icon">&#128172;</div><div class="nav-label">Avis</div></div>
       <div class="nav-item" onclick="showTab('agenda')"><div class="nav-icon">&#128197;</div><div class="nav-label">Agenda</div></div>
       <div class="nav-item" onclick="showTab('profil')"><div class="nav-icon">&#128100;</div><div class="nav-label">Profil</div></div>
     </div>
+  </div>
+
+  <!-- MATCHES -->
   <div class="screen" id="matches">
     <div class="page-header">
       <div class="screen-title">Mes connexions</div>
-      <div class="screen-sub" id="matches-soiree-label">Soirée Étincelle · 12 juin</div>
+      <div class="screen-sub" id="matches-soiree-label">...</div>
     </div>
     <div class="scrollable" id="matches-content">
-      <div class="no-content">Tes connexions apparaîtront ici<br>au fil de la soirée.</div>
+      <div class="no-content">Tes connexions apparaîtront ici.</div>
     </div>
     <div class="nav-bar">
       <div class="nav-item" onclick="showTab('discover')"><div class="nav-icon">&#10024;</div><div class="nav-label">Ce soir</div></div>
       <div class="nav-item active" onclick="showTab('matches')"><div class="nav-icon">&#128140;</div><div class="nav-label">Connexions</div></div>
+      <div class="nav-item" onclick="showTab('commentaires')"><div class="nav-icon">&#128172;</div><div class="nav-label">Avis</div></div>
       <div class="nav-item" onclick="showTab('agenda')"><div class="nav-icon">&#128197;</div><div class="nav-label">Agenda</div></div>
       <div class="nav-item" onclick="showTab('profil')"><div class="nav-icon">&#128100;</div><div class="nav-label">Profil</div></div>
     </div>
@@ -351,12 +364,52 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <div style="font-size:11px;color:var(--vl);" id="chat-intention">Match depuis ce soir</div>
       </div>
     </div>
-    <div class="chat-messages" id="chat-messages">
-      <div style="text-align:center;font-size:12px;color:var(--dim);padding:8px 0;">Vous vous êtes rencontrés ce soir</div>
-    </div>
+    <div class="chat-messages" id="chat-messages"></div>
     <div class="chat-input-bar">
       <textarea class="chat-input" id="chat-input" placeholder="Écrire un message..." rows="1" oninput="autoResize(this)"></textarea>
       <button class="chat-send" onclick="sendMessage()">&#10148;</button>
+    </div>
+  </div>
+
+  <!-- COMMENTAIRES -->
+  <div class="screen" id="commentaires">
+    <div class="page-header">
+      <div class="screen-title">Avis de la soirée</div>
+      <div class="screen-sub" id="comments-soiree-label">...</div>
+    </div>
+    <div class="scrollable" id="comments-list">
+      <div class="no-content">Sois le premier à donner ton avis !</div>
+    </div>
+    <div class="comment-input-area">
+      <textarea class="chat-input" id="comment-input" placeholder="Laisse un avis sur la soirée..." rows="2" style="width:100%;margin-bottom:8px;"></textarea>
+      <button class="btn-primary" onclick="sendComment()" style="padding:12px;">Publier</button>
+    </div>
+    <div class="nav-bar">
+      <div class="nav-item" onclick="showTab('discover')"><div class="nav-icon">&#10024;</div><div class="nav-label">Ce soir</div></div>
+      <div class="nav-item" onclick="showTab('matches')"><div class="nav-icon">&#128140;</div><div class="nav-label">Connexions</div></div>
+      <div class="nav-item active" onclick="showTab('commentaires')"><div class="nav-icon">&#128172;</div><div class="nav-label">Avis</div></div>
+      <div class="nav-item" onclick="showTab('agenda')"><div class="nav-icon">&#128197;</div><div class="nav-label">Agenda</div></div>
+      <div class="nav-item" onclick="showTab('profil')"><div class="nav-icon">&#128100;</div><div class="nav-label">Profil</div></div>
+    </div>
+  </div>
+
+  <!-- AGENDA -->
+  <div class="screen" id="agenda">
+    <div class="page-header">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px;">
+        <span onclick="goBackFromAgenda()" style="font-size:22px;color:var(--vl);cursor:pointer;">&#8592;</span>
+        <div class="screen-title">Agenda</div>
+      </div>
+      <div class="screen-sub" style="padding-left:34px;">Les prochaines soirées MindSwipe</div>
+    </div>
+    <div class="scrollable" id="agenda-list">
+    </div>
+    <div class="nav-bar" id="agenda-nav" style="display:none;">
+      <div class="nav-item" onclick="showTab('discover')"><div class="nav-icon">&#10024;</div><div class="nav-label">Ce soir</div></div>
+      <div class="nav-item" onclick="showTab('matches')"><div class="nav-icon">&#128140;</div><div class="nav-label">Connexions</div></div>
+      <div class="nav-item" onclick="showTab('commentaires')"><div class="nav-icon">&#128172;</div><div class="nav-label">Avis</div></div>
+      <div class="nav-item active" onclick="showTab('agenda')"><div class="nav-icon">&#128197;</div><div class="nav-label">Agenda</div></div>
+      <div class="nav-item" onclick="showTab('profil')"><div class="nav-icon">&#128100;</div><div class="nav-label">Profil</div></div>
     </div>
   </div>
 
@@ -365,7 +418,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="profil-top">
       <div class="profil-av" id="profil-initial">?</div>
       <div style="font-size:20px;font-weight:500;color:#fff;" id="profil-name">Mon profil</div>
-      <div style="font-size:13px;color:var(--vl);margin-top:4px;" id="profil-soiree-label">Soirée Étincelle · 12 juin</div>
+      <div style="font-size:13px;color:var(--vl);margin-top:4px;" id="profil-soiree-label">...</div>
       <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap;" id="profil-mots"></div>
     </div>
     <div class="scrollable">
@@ -379,20 +432,185 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <div class="ps-row"><span class="ps-row-label">Crushes reçus</span><span class="ps-row-val" id="stat-crushes-recv">0</span></div>
         <div class="ps-row"><span class="ps-row-label">Matches validés</span><span class="ps-row-val" id="stat-matches">0</span></div>
       </div>
-      <div class="profil-section">
-        <div class="ps-title">Ma soirée</div>
-        <div class="ps-row"><span class="ps-row-label">Format</span><span class="ps-row-val">Soirée Étincelle</span></div>
-        <div class="ps-row"><span class="ps-row-label">Date</span><span class="ps-row-val">12 juin 2025</span></div>
-        <div class="ps-row"><span class="ps-row-label">Lieu</span><span class="ps-row-val">Bar Le Cosmos</span></div>
-      </div>
       <button class="btn-deconnect" onclick="logout()">Se déconnecter</button>
       <button class="btn-danger" onclick="resetAll()">Effacer mon profil</button>
+      <!-- Signalement discret -->
+      <div style="text-align:center;padding:8px 20px 4px;">
+        <span onclick="openSignalement()" style="font-size:12px;color:#6B2020;cursor:pointer;text-decoration:underline;">⚠ Signaler un comportement</span>
+      </div>
     </div>
     <div class="nav-bar">
       <div class="nav-item" onclick="showTab('discover')"><div class="nav-icon">&#10024;</div><div class="nav-label">Ce soir</div></div>
       <div class="nav-item" onclick="showTab('matches')"><div class="nav-icon">&#128140;</div><div class="nav-label">Connexions</div></div>
+      <div class="nav-item" onclick="showTab('commentaires')"><div class="nav-icon">&#128172;</div><div class="nav-label">Avis</div></div>
       <div class="nav-item" onclick="showTab('agenda')"><div class="nav-icon">&#128197;</div><div class="nav-label">Agenda</div></div>
       <div class="nav-item active" onclick="showTab('profil')"><div class="nav-icon">&#128100;</div><div class="nav-label">Profil</div></div>
+    </div>
+  </div>
+
+  <!-- RGPD -->
+  <div class="screen" id="rgpd">
+    <div class="page-header">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span onclick="history.back()||showScreen('splash')" style="font-size:22px;color:var(--vl);cursor:pointer;">&#8592;</span>
+        <div class="screen-title">Confidentialité</div>
+      </div>
+    </div>
+    <div class="scrollable">
+      <div style="padding:0 20px 40px;color:var(--g);font-size:14px;line-height:1.8;">
+        <div style="font-size:16px;font-weight:500;color:#fff;margin-bottom:12px;">Politique de confidentialité MindSwipe</div>
+        <div style="font-size:11px;color:var(--dim);margin-bottom:20px;">Dernière mise à jour : juin 2025</div>
+
+        <div style="font-weight:500;color:var(--vl);margin-bottom:6px;">1. Responsable du traitement</div>
+        <p style="margin-bottom:16px;">Magdeleine BS, organisatrice de MindSwipe. Contact : via l'application.</p>
+
+        <div style="font-weight:500;color:var(--vl);margin-bottom:6px;">2. Données collectées</div>
+        <p style="margin-bottom:16px;">Prénom, âge, genre, mots descriptifs, réponse à la question de soirée, et motivations de participation. Aucune donnée sensible (origine, santé, opinions politiques) n'est collectée.</p>
+
+        <div style="font-weight:500;color:var(--vl);margin-bottom:6px;">3. Finalité</div>
+        <p style="margin-bottom:16px;">Les données servent uniquement à faire fonctionner l'application lors des soirées MindSwipe : afficher les profils aux autres participants, gérer les crushes et matches, et permettre la messagerie.</p>
+
+        <div style="font-weight:500;color:var(--vl);margin-bottom:6px;">4. Base légale</div>
+        <p style="margin-bottom:16px;">Consentement explicite de l'utilisateur, recueilli lors de l'inscription (RGPD art. 6.1.a).</p>
+
+        <div style="font-weight:500;color:var(--vl);margin-bottom:6px;">5. Durée de conservation</div>
+        <p style="margin-bottom:16px;">Les données sont conservées jusqu'au lendemain de la soirée, puis archivées 30 jours avant suppression définitive.</p>
+
+        <div style="font-weight:500;color:var(--vl);margin-bottom:6px;">6. Vos droits (RGPD)</div>
+        <p style="margin-bottom:16px;">Vous disposez d'un droit d'accès, de rectification, d'effacement, de portabilité et d'opposition. Vous pouvez effacer votre profil à tout moment depuis l'application. Pour toute demande, contactez l'organisatrice.</p>
+
+        <div style="font-weight:500;color:var(--vl);margin-bottom:6px;">7. Hébergement</div>
+        <p style="margin-bottom:16px;">Les données sont hébergées par Google Firebase (Belgique, UE) — conforme au RGPD.</p>
+
+        <div style="font-weight:500;color:var(--vl);margin-bottom:6px;">8. Réclamations</div>
+        <p style="margin-bottom:16px;">Vous pouvez introduire une réclamation auprès de la CNIL : cnil.fr</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CGU -->
+  <div class="screen" id="cgu">
+    <div class="page-header">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span onclick="showScreen('splash')" style="font-size:22px;color:var(--vl);cursor:pointer;">&#8592;</span>
+        <div class="screen-title">Conditions d'utilisation</div>
+      </div>
+    </div>
+    <div class="scrollable">
+      <div style="padding:0 20px 40px;color:var(--g);font-size:14px;line-height:1.8;">
+        <div style="font-size:16px;font-weight:500;color:#fff;margin-bottom:12px;">CGU MindSwipe</div>
+
+        <div style="font-weight:500;color:var(--vl);margin-bottom:6px;">1. Objet</div>
+        <p style="margin-bottom:16px;">MindSwipe est une application de rencontres utilisée lors de soirées organisées par Magdeleine BS. L'accès est réservé aux participants des soirées.</p>
+
+        <div style="font-weight:500;color:var(--vl);margin-bottom:6px;">2. Âge minimum</div>
+        <p style="margin-bottom:16px;">L'application est réservée aux personnes majeures (18 ans ou plus).</p>
+
+        <div style="font-weight:500;color:var(--vl);margin-bottom:6px;">3. Comportement</div>
+        <p style="margin-bottom:16px;">Tout comportement irrespectueux, harcelant ou inapproprié entraîne l'exclusion immédiate de la soirée et l'interdiction définitive d'accès à MindSwipe.</p>
+
+        <div style="font-weight:500;color:var(--vl);margin-bottom:6px;">4. Contenu</div>
+        <p style="margin-bottom:16px;">Il est interdit de publier du contenu offensant, discriminatoire ou à caractère sexuel non sollicité.</p>
+
+        <div style="font-weight:500;color:var(--vl);margin-bottom:6px;">5. Responsabilité</div>
+        <p style="margin-bottom:16px;">MindSwipe est un outil de mise en relation. L'organisatrice ne peut être tenue responsable des interactions entre participants en dehors des soirées.</p>
+
+        <div style="font-weight:500;color:var(--vl);margin-bottom:6px;">6. Signalement</div>
+        <p>Tout comportement inapproprié peut être signalé via le bouton dédié dans l'application. Chaque signalement est traité par l'organisatrice.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="screen" id="admin">
+    <div class="page-header" style="background:#120C28;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px;">
+        <span onclick="showScreen('splash')" style="font-size:22px;color:var(--vl);cursor:pointer;">&#8592;</span>
+        <div class="screen-title">Admin 🔐</div>
+      </div>
+      <div class="screen-sub">MindSwipe · Magdeleine BS</div>
+    </div>
+    <div class="scrollable">
+      <!-- Sélecteur soirée admin -->
+      <div style="padding:12px 20px 0;">
+        <div class="field-label">Soirée à consulter</div>
+        <select id="admin-soiree-select" onchange="loadAdminData()" style="background:var(--vd);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:14px;color:#fff;width:100%;outline:none;">
+        </select>
+      </div>
+
+      <!-- Stats -->
+      <div class="admin-section" style="margin-top:12px;">
+        <div class="admin-section-title">📊 Stats en temps réel</div>
+        <div class="admin-row admin-stat"><span class="admin-stat-label">Participants</span><span class="admin-stat-val" id="admin-nb-participants">—</span></div>
+        <div class="admin-row admin-stat"><span class="admin-stat-label">Crushes</span><span class="admin-stat-val" id="admin-nb-crushes">—</span></div>
+        <div class="admin-row admin-stat"><span class="admin-stat-label">Matches</span><span class="admin-stat-val" id="admin-nb-matches">—</span></div>
+        <div class="admin-row admin-stat"><span class="admin-stat-label">Commentaires</span><span class="admin-stat-val" id="admin-nb-comments">—</span></div>
+      </div>
+
+      <!-- Participants -->
+      <div class="admin-section">
+        <div class="admin-section-title">👥 Participants inscrits</div>
+        <div id="admin-participants-list"><div class="admin-row" style="color:var(--dim);font-size:13px;">Chargement...</div></div>
+      </div>
+
+      <!-- Questionnaire -->
+      <div class="admin-section">
+        <div class="admin-section-title">💬 Pourquoi ils viennent</div>
+        <div id="admin-questionnaire-list"><div class="admin-row" style="color:var(--dim);font-size:13px;">Chargement...</div></div>
+      </div>
+
+      <!-- Matches -->
+      <div class="admin-section">
+        <div class="admin-section-title">💜 Matches validés</div>
+        <div id="admin-matches-list"><div class="admin-row" style="color:var(--dim);font-size:13px;">Chargement...</div></div>
+      </div>
+
+      <!-- Commentaires + modération -->
+      <div class="admin-section">
+        <div class="admin-section-title">🗨 Commentaires</div>
+        <div id="admin-comments-list"><div class="admin-row" style="color:var(--dim);font-size:13px;">Chargement...</div></div>
+      </div>
+
+      <!-- Signalements -->
+      <div class="admin-section">
+        <div class="admin-section-title">⚠ Signalements</div>
+        <div id="admin-signals-list"><div class="admin-row" style="color:var(--dim);font-size:13px;">Aucun signalement</div></div>
+      </div>
+
+      <!-- Message groupé -->
+      <div class="admin-section">
+        <div class="admin-section-title">📢 Message groupé</div>
+        <div class="admin-row">
+          <textarea class="admin-msg-input" id="admin-broadcast-msg" placeholder="Écris ton message à tous les participants..." rows="3"></textarea>
+          <button class="btn-primary" onclick="sendBroadcast()" style="padding:12px;">Envoyer à tous</button>
+        </div>
+      </div>
+
+      <div style="height:40px;"></div>
+    </div>
+  </div>
+
+  <!-- MODAL ADMIN LOGIN -->
+  <div class="modal-overlay hidden" id="modal-admin-login">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div style="font-size:18px;font-weight:500;color:#fff;text-align:center;margin-bottom:8px;">🔐 Accès admin</div>
+      <div style="font-size:13px;color:var(--g);text-align:center;margin-bottom:20px;">Réservé à Magdeleine BS</div>
+      <input class="field-input" id="admin-pwd-input" type="password" placeholder="Mot de passe" style="margin-bottom:12px;">
+      <button class="btn-primary" onclick="checkAdminPwd()">Entrer</button>
+      <button class="btn-skip" onclick="closeAdminLogin()">Annuler</button>
+    </div>
+  </div>
+
+  <!-- MODAL SIGNALEMENT -->
+  <div class="modal-overlay hidden" id="modal-signalement">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div style="font-size:18px;font-weight:500;color:#fff;text-align:center;margin-bottom:8px;">⚠ Signaler</div>
+      <div style="font-size:13px;color:var(--g);text-align:center;margin-bottom:20px;">Décris ce qui s'est passé. L'organisatrice sera notifiée immédiatement.</div>
+      <textarea class="field-input" id="signal-text" placeholder="Décris la situation librement..." rows="5" style="resize:none;margin-bottom:12px;"></textarea>
+      <button class="btn-primary" onclick="submitSignalement()" style="background:#A32D2D;">Envoyer le signalement</button>
+      <button class="btn-skip" onclick="closeSignalement()">Annuler</button>
     </div>
   </div>
 
@@ -404,26 +622,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="modal-title" id="modal-title">Match !</div>
       <div class="modal-sub" id="modal-sub">Vous vous êtes crushés mutuellement.<br>Comment tu vois la suite ?</div>
       <div class="intention-grid">
-        <div class="intention-btn" onclick="selectIntention(this,'verre')" data-intention="verre">
-          <div class="ib-emoji">&#9749;</div>
-          <div class="ib-label">OK pour un verre</div>
-          <div class="ib-sub">On se retrouve bientôt, sans prise de tête</div>
-        </div>
-        <div class="intention-btn" onclick="selectIntention(this,'aventure')" data-intention="aventure">
-          <div class="ib-emoji">&#10024;</div>
-          <div class="ib-label">Tentons l'aventure</div>
-          <div class="ib-sub">J'ai envie d'aller plus loin avec toi</div>
-        </div>
-        <div class="intention-btn" onclick="selectIntention(this,'amis')" data-intention="amis">
-          <div class="ib-emoji">&#129309;</div>
-          <div class="ib-label">Restons amis, t'es super</div>
-          <div class="ib-sub">Super rencontre, gardons contact</div>
-        </div>
-        <div class="intention-btn" onclick="selectIntention(this,'surprise')" data-intention="surprise">
-          <div class="ib-emoji">&#127774;</div>
-          <div class="ib-label">On verra bien...</div>
-          <div class="ib-sub">Je veux qu'on se découvre encore</div>
-        </div>
+        <div class="intention-btn" onclick="selectIntention(this,'verre')"><div class="ib-emoji">&#9749;</div><div class="ib-label">OK pour un verre</div><div class="ib-sub">On se retrouve bientôt, sans prise de tête</div></div>
+        <div class="intention-btn" onclick="selectIntention(this,'aventure')"><div class="ib-emoji">&#10024;</div><div class="ib-label">Tentons l'aventure</div><div class="ib-sub">J'ai envie d'aller plus loin avec toi</div></div>
+        <div class="intention-btn" onclick="selectIntention(this,'amis')"><div class="ib-emoji">&#129309;</div><div class="ib-label">Restons amis, t'es super</div><div class="ib-sub">Super rencontre, gardons contact</div></div>
+        <div class="intention-btn" onclick="selectIntention(this,'surprise')"><div class="ib-emoji">&#127774;</div><div class="ib-label">On verra bien...</div><div class="ib-sub">Je veux qu'on se découvre encore</div></div>
       </div>
       <button class="btn-primary" id="modal-validate" onclick="validateMatch()" style="opacity:0.4;pointer-events:none;">Valider le match</button>
       <button class="btn-skip" onclick="closeModal()">Pas maintenant</button>
@@ -443,68 +645,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <button class="btn-primary" onclick="closeCelebration()" style="max-width:280px;">Écrire un message</button>
   </div>
 
-  <!-- AGENDA -->
-  <div class="screen" id="agenda">
-    <div class="page-header">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px;">
-        <span onclick="showScreen('splash')" style="font-size:22px;color:var(--vl);cursor:pointer;">&#8592;</span>
-        <div class="screen-title">Agenda</div>
-      </div>
-      <div class="screen-sub" style="padding-left:34px;">Les prochaines soirées MindSwipe</div>
-    </div>
-    <div class="scrollable">
-      <div style="padding:0 0 40px;">
-
-        <div style="padding:0 20px 10px;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:0.1em;font-weight:500;">Juin 2025</div>
-
-        <!-- Soirée Étincelle -->
-        <div class="agenda-card upcoming">
-          <div class="agenda-card-header">
-            <div>
-              <div class="agenda-name">✨ Soirée Étincelle</div>
-              <div class="agenda-format">25-35 ans · Dynamique, fun, décomplexée</div>
-            </div>
-            <div class="agenda-badge">À venir</div>
-          </div>
-          <div class="agenda-details">
-            <div class="agenda-detail-row"><span>📅</span><span>Jeudi 12 juin 2025</span></div>
-            <div class="agenda-detail-row"><span>⏰</span><span>19h30 – 23h00</span></div>
-            <div class="agenda-detail-row"><span>📍</span><span>Bar Le Cosmos · Paris</span></div>
-            <div class="agenda-detail-row"><span>🎟</span><span>15€/pers · Gratuit pour les femmes</span></div>
-            <div class="agenda-detail-row"><span>👥</span><span>Limité à 40 participants</span></div>
-            <div class="agenda-detail-row"><span>🚇</span><span>Raccompagnement métro inclus</span></div>
-          </div>
-          <button class="agenda-join-btn" onclick="selectSoireeAndGo('soiree_etincelle_juin2025','Soirée Étincelle · 12 juin','Étincelle')">Rejoindre cette soirée</button>
-        </div>
-
-        <!-- Soirée Confluence -->
-        <div class="agenda-card upcoming">
-          <div class="agenda-card-header">
-            <div>
-              <div class="agenda-name">🌊 Soirée Confluence</div>
-              <div class="agenda-format">35-45 ans · Équilibre, profondeur, sincérité</div>
-            </div>
-            <div class="agenda-badge">À venir</div>
-          </div>
-          <div class="agenda-details">
-            <div class="agenda-detail-row"><span>📅</span><span>Jeudi 26 juin 2025</span></div>
-            <div class="agenda-detail-row"><span>⏰</span><span>19h30 – 23h00</span></div>
-            <div class="agenda-detail-row"><span>📍</span><span>Bar Le Cosmos · Paris</span></div>
-            <div class="agenda-detail-row"><span>🎟</span><span>20€/pers · Gratuit pour les femmes</span></div>
-            <div class="agenda-detail-row"><span>👥</span><span>Limité à 40 participants</span></div>
-            <div class="agenda-detail-row"><span>🚇</span><span>Raccompagnement métro inclus</span></div>
-          </div>
-          <button class="agenda-join-btn" onclick="selectSoireeAndGo('soiree_confluence_juin2025','Soirée Confluence · 26 juin','Confluence')">Rejoindre cette soirée</button>
-        </div>
-
-        <div style="padding:16px 20px 0;font-size:12px;color:var(--dim);text-align:center;line-height:1.6;">
-          Toutes les soirées se vivent sans téléphone.<br>L'appli s'utilise à la fin, pour les connexions. 💜<br><br>
-          <span style="font-size:11px;color:#2A1E60;">© Magdeleine BS · MindSwipe</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
 </div>
 
 <script>
@@ -522,11 +662,18 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+// ─── SOIRÉES PILOTES ───────────────────────────────────────────────────────
+const SOIREES_DATA = [
+  { id: 'soiree_etincelle_juin2025', nom: '✨ Soirée Étincelle', date: 'Jeudi 19 juin 2025', label: 'Soirée Étincelle · 19 juin', lieu: 'Bar Le Cosmos · Paris', horaire: '19h30 – 23h00', tarif: '15€/pers · Gratuit pour les femmes', format: '25-35 ans · Dynamique, fun, décomplexée', ts: new Date('2025-06-19').getTime() },
+  { id: 'soiree_confluence_juillet2025', nom: '🌊 Soirée Confluence', date: 'Jeudi 3 juillet 2025', label: 'Soirée Confluence · 3 juil.', lieu: 'Bar Le Cosmos · Paris', horaire: '19h30 – 23h00', tarif: '20€/pers · Gratuit pour les femmes', format: '35-45 ans · Équilibre, profondeur, sincérité', ts: new Date('2025-07-03').getTime() },
+  { id: 'soiree_lumiere_aout2025', nom: '🌟 Soirée Lumière', date: 'Jeudi 28 août 2025', label: 'Soirée Lumière · 28 août', lieu: 'Bar Le Cosmos · Paris', horaire: '19h30 – 23h00', tarif: '15€/pers · Gratuit pour les femmes', format: 'Tous âges · Rentrée, nouvelles rencontres', ts: new Date('2025-08-28').getTime() },
+];
+
 // ─── STATE ─────────────────────────────────────────────────────────────────
-let SOIREE_ID = 'soiree_etincelle_juin2025';
-let SOIREE_LABEL = 'Soirée Étincelle · 12 juin';
-let SOIREE_NOM = 'Étincelle';
-const LOCAL_KEY = 'mindswipe_profil_v2';
+let SOIREE_ID = SOIREES_DATA[0].id;
+let SOIREE_LABEL = SOIREES_DATA[0].label;
+const LOCAL_KEY = 'mindswipe_profil_v3';
+const ADMIN_PWD = 'Dimitriisback2026*';
 
 let myId = null;
 let myProfil = null;
@@ -534,39 +681,27 @@ let selectedGenre = 'femme';
 let currentChatPerson = null;
 let pendingMatchPerson = null;
 let selectedIntentionValue = null;
+let selectedMotivations = [];
+let adminTapCount = 0;
+let adminTapTimer = null;
+let isLoggedIn = false;
 
-// Mots par genre
 const MOTS_FEMME = ['Curieuse','Aventurière','Créative','Sincère','Drôle','Passionnée','Bienveillante','Ambitieuse','Calme','Intense','Spontanée','Sensible','Déterminée','Lumineuse'];
 const MOTS_HOMME = ['Curieux','Aventurier','Créatif','Sincère','Drôle','Passionné','Bienveillant','Ambitieux','Calme','Intense','Spontané','Sensible','Déterminé','Lumineux'];
 
-// Soirées disponibles
-const SOIREES = {
-  soiree_etincelle_juin2025: { label: 'Soirée Étincelle · 12 juin', nom: 'Étincelle' },
-  soiree_confluence_juin2025: { label: 'Soirée Confluence · 26 juin', nom: 'Confluence' }
-};
-
-const intentionLabels = {
-  verre: '&#9749; OK pour un verre',
-  aventure: '&#10024; Tentons l\'aventure',
-  amis: '&#129309; Restons amis, t\'es super',
-  surprise: '&#127774; On verra bien...'
-};
+const motivationLabels = { moment:'Passer un bon moment', ame:'Croiser mon âme sœur', sortir:'Sortir de chez moi', amis:'Me faire des amis', decouvrir:'Découvrir MindSwipe' };
+const intentionLabels = { verre:'☕ OK pour un verre', aventure:'✨ Tentons l\'aventure', amis:'🤝 Restons amis, t\'es super', surprise:'🌙 On verra bien...' };
 
 // ─── INIT ──────────────────────────────────────────────────────────────────
 function init() {
   const saved = localStorage.getItem(LOCAL_KEY);
   if (saved) {
-    try {
-      const data = JSON.parse(saved);
-      myId = data.id;
-      myProfil = data.profil;
-    } catch(e) {}
+    try { const d = JSON.parse(saved); myId = d.id; myProfil = d.profil; SOIREE_ID = d.soireeId || SOIREE_ID; SOIREE_LABEL = d.soireeLabel || SOIREE_LABEL; } catch(e) {}
   }
+  renderAgenda();
+  renderSoireeSelector();
+  renderMotsGrid();
   renderSplash();
-  hideLoading();
-}
-
-function hideLoading() {
   document.getElementById('loading').classList.add('hidden');
   showScreen('splash');
 }
@@ -574,19 +709,79 @@ function hideLoading() {
 function renderSplash() {
   const btn = document.getElementById('splash-btns');
   if (myProfil) {
-    btn.innerHTML = `
-      <div class="saved-banner">
-        <div class="sb-hello">Bon retour, ${myProfil.prenom} !</div>
-        <div class="sb-sub">Ton profil est sauvegardé</div>
-      </div>
-      <button class="btn-primary" onclick="enterApp()">Rejoindre la soirée</button>
-      <button class="btn-ghost" onclick="showScreen('inscription')">Modifier mon profil</button>
-    `;
+    btn.innerHTML = `<div class="saved-banner"><div class="sb-hello">Bon retour, ${myProfil.prenom} !</div><div class="sb-sub">Ton profil est sauvegardé ✓</div></div><button class="btn-primary" onclick="enterApp()">Rejoindre la soirée</button><button class="btn-ghost" onclick="showScreen('inscription')">Modifier mon profil</button>`;
   } else {
-    btn.innerHTML = `
-      <button class="btn-primary" onclick="showScreen('inscription')">Créer mon profil</button>
-    `;
+    btn.innerHTML = `<button class="btn-primary" onclick="showScreen('inscription')">Créer mon profil</button>`;
   }
+}
+
+// ─── AGENDA ────────────────────────────────────────────────────────────────
+function renderAgenda() {
+  const list = document.getElementById('agenda-list');
+  const now = Date.now();
+  let html = '<div style="padding:0 0 40px;">';
+  const upcoming = SOIREES_DATA.filter(s => s.ts >= now - 86400000);
+  const past = SOIREES_DATA.filter(s => s.ts < now - 86400000);
+  if (upcoming.length) {
+    html += '<div style="padding:12px 20px 10px;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:0.1em;font-weight:500;">À venir</div>';
+    upcoming.forEach(s => { html += agendaCard(s, false); });
+  }
+  if (past.length) {
+    html += '<div style="padding:12px 20px 10px;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:0.1em;font-weight:500;">Passées</div>';
+    past.forEach(s => { html += agendaCard(s, true); });
+  }
+  html += '<div style="padding:16px 20px;font-size:12px;color:var(--dim);text-align:center;line-height:1.6;">Toutes les soirées se vivent sans téléphone.<br>L\'appli s\'utilise à la fin, pour les connexions. 💜<br><br><span style="font-size:11px;color:#2A1E60;">© Magdeleine BS · MindSwipe</span></div>';
+  html += '</div>';
+  list.innerHTML = html;
+}
+
+function agendaCard(s, isPast) {
+  return `<div class="agenda-card ${isPast ? 'past' : 'upcoming'}">
+    <div class="agenda-card-header">
+      <div><div class="agenda-name">${s.nom}</div><div class="agenda-format">${s.format}</div></div>
+      <div class="agenda-badge ${isPast ? 'past' : ''}">${isPast ? 'Passée' : 'À venir'}</div>
+    </div>
+    <div class="agenda-details">
+      <div class="agenda-detail-row"><span>📅</span><span>${s.date}</span></div>
+      <div class="agenda-detail-row"><span>⏰</span><span>${s.horaire}</span></div>
+      <div class="agenda-detail-row"><span>📍</span><span>${s.lieu}</span></div>
+      <div class="agenda-detail-row"><span>🎟</span><span>${s.tarif}</span></div>
+      <div class="agenda-detail-row"><span>👥</span><span>Limité à 40 participants</span></div>
+      <div class="agenda-detail-row"><span>🚇</span><span>Raccompagnement métro inclus</span></div>
+    </div>
+    ${!isPast ? `<button class="agenda-join-btn" onclick="selectSoireeAndGo('${s.id}','${s.label}')">Rejoindre cette soirée</button>` : ''}
+  </div>`;
+}
+
+function goBackFromAgenda() {
+  if (isLoggedIn) showTab('discover'); else showScreen('splash');
+}
+
+// ─── SOIRÉE SELECTOR ───────────────────────────────────────────────────────
+function renderSoireeSelector() {
+  const sel = document.getElementById('soiree-selector');
+  if (!sel) return;
+  sel.innerHTML = SOIREES_DATA.filter(s => s.ts >= Date.now() - 86400000).map(s =>
+    `<div class="soiree-choice ${s.id === SOIREE_ID ? 'selected' : ''}" id="sc-${s.id}" onclick="selectSoiree('${s.id}','${s.label}')">
+      <div style="font-size:16px;font-weight:500;color:#fff;">${s.nom}</div>
+      <div style="font-size:12px;color:var(--vl);margin-top:3px;">${s.date} · ${s.lieu}</div>
+      <div style="font-size:12px;color:var(--g);margin-top:2px;">${s.format}</div>
+    </div>`
+  ).join('');
+}
+
+function selectSoiree(id, label) {
+  SOIREE_ID = id; SOIREE_LABEL = label;
+  document.querySelectorAll('.soiree-choice').forEach(el => el.classList.remove('selected'));
+  const el = document.getElementById('sc-' + id);
+  if (el) el.classList.add('selected');
+  const sub = document.getElementById('inscription-soiree-sub');
+  if (sub) sub.textContent = label;
+}
+
+function selectSoireeAndGo(id, label) {
+  selectSoiree(id, label);
+  showScreen('inscription');
 }
 
 // ─── INSCRIPTION ───────────────────────────────────────────────────────────
@@ -599,23 +794,9 @@ function selectGenre(g) {
 
 function renderMotsGrid() {
   const grid = document.getElementById('mots-grid');
+  if (!grid) return;
   const mots = selectedGenre === 'femme' ? MOTS_FEMME : MOTS_HOMME;
   grid.innerHTML = mots.map(m => `<div class="mot-pill" onclick="toggleMot(this)">${m}</div>`).join('');
-}
-
-function selectSoiree(id, label, nom) {
-  SOIREE_ID = id;
-  SOIREE_LABEL = label;
-  SOIREE_NOM = nom;
-  document.querySelectorAll('.soiree-choice').forEach(el => el.classList.remove('selected'));
-  const map = { soiree_etincelle_juin2025: 'sc-etincelle', soiree_confluence_juin2025: 'sc-confluence' };
-  if (map[id]) document.getElementById(map[id]).classList.add('selected');
-  document.getElementById('inscription-soiree-sub').textContent = label;
-}
-
-function selectSoireeAndGo(id, label, nom) {
-  selectSoiree(id, label, nom);
-  showScreen('inscription');
 }
 
 function toggleMot(el) {
@@ -624,8 +805,10 @@ function toggleMot(el) {
   el.classList.toggle('selected');
 }
 
-function simulatePhoto() {
-  document.getElementById('pz-content').innerHTML = '<div style="font-size:36px;">&#128247;</div><div style="font-size:13px;color:var(--vl);margin-top:8px;">Photo prise !</div>';
+function toggleQuestionnaire(el, val) {
+  el.classList.toggle('selected');
+  if (el.classList.contains('selected')) { if (!selectedMotivations.includes(val)) selectedMotivations.push(val); }
+  else { selectedMotivations = selectedMotivations.filter(v => v !== val); }
 }
 
 async function saveAndContinue() {
@@ -633,29 +816,27 @@ async function saveAndContinue() {
   const age = document.getElementById('inp-age').value.trim();
   const reponse = document.getElementById('inp-reponse').value.trim();
   const mots = [...document.querySelectorAll('#mots-grid .mot-pill.selected')].map(e => e.textContent);
-  if (!prenom) { alert('Entre ton prénom pour continuer.'); return; }
-
-  myProfil = { prenom, age, genre: selectedGenre, reponse, mots };
-
+  const consent = document.getElementById('rgpd-consent').checked;
+  if (!prenom) { showToast('⚠️', 'Entre ton prénom pour continuer.'); return; }
+  if (!consent) { showToast('⚠️', 'Tu dois accepter les conditions pour continuer.'); return; }
+  myProfil = { prenom, age, genre: selectedGenre, reponse, mots, motivations: selectedMotivations };
   if (!myId) myId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2,6);
-  localStorage.setItem(LOCAL_KEY, JSON.stringify({ id: myId, profil: myProfil }));
-
-  // Enregistrer dans Firebase
-  await db.ref(`soirees/${SOIREE_ID}/participants/${myId}`).set({
-    ...myProfil,
-    joinedAt: Date.now()
-  });
-
+  localStorage.setItem(LOCAL_KEY, JSON.stringify({ id: myId, profil: myProfil, soireeId: SOIREE_ID, soireeLabel: SOIREE_LABEL }));
+  await db.ref(`soirees/${SOIREE_ID}/participants/${myId}`).set({ ...myProfil, joinedAt: Date.now() });
   enterApp();
 }
 
 // ─── ENTER APP ─────────────────────────────────────────────────────────────
 function enterApp() {
+  isLoggedIn = true;
   applyProfil();
   showTab('discover');
   loadParticipants();
   listenCrushesReceived();
   listenMatches();
+  listenComments();
+  listenBroadcast();
+  document.getElementById('agenda-nav').style.display = 'flex';
 }
 
 function applyProfil() {
@@ -663,22 +844,9 @@ function applyProfil() {
   document.getElementById('profil-initial').textContent = myProfil.prenom[0].toUpperCase();
   document.getElementById('profil-name').textContent = myProfil.prenom + (myProfil.age ? ', ' + myProfil.age + ' ans' : '');
   document.getElementById('profil-reponse').textContent = myProfil.reponse || '—';
-  // Labels soirée dynamiques
-  const lbl = SOIREE_LABEL;
-  ['disc-soiree-label','matches-soiree-label','profil-soiree-label'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = lbl;
-  });
-  // Label inscription
-  document.getElementById('inscription-soiree-sub').textContent = lbl;
+  ['disc-soiree-label','matches-soiree-label','profil-soiree-label','comments-soiree-label'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = SOIREE_LABEL; });
   const motsEl = document.getElementById('profil-mots');
-  motsEl.innerHTML = '';
-  (myProfil.mots || []).forEach(m => {
-    const s = document.createElement('span');
-    s.className = 'pc-mot';
-    s.textContent = m;
-    motsEl.appendChild(s);
-  });
+  motsEl.innerHTML = (myProfil.mots || []).map(m => `<span class="pc-mot">${m}</span>`).join('');
 }
 
 // ─── PARTICIPANTS ──────────────────────────────────────────────────────────
@@ -686,62 +854,30 @@ function loadParticipants() {
   db.ref(`soirees/${SOIREE_ID}/participants`).on('value', async snap => {
     const all = snap.val() || {};
     const others = Object.entries(all).filter(([id]) => id !== myId);
-
-    // Récupérer mes crushes envoyés
     const crushSnap = await db.ref(`soirees/${SOIREE_ID}/crushes/${myId}`).get();
     const myCrushes = crushSnap.val() || {};
-
-    // Récupérer les crushes reçus
     const recvSnap = await db.ref(`soirees/${SOIREE_ID}/crushes`).get();
     const allCrushes = recvSnap.val() || {};
     const crushesOnMe = {};
-    Object.entries(allCrushes).forEach(([uid, targets]) => {
-      if (targets[myId] && uid !== myId) crushesOnMe[uid] = true;
-    });
-
-    // Récupérer mes matches validés
+    Object.entries(allCrushes).forEach(([uid, targets]) => { if (targets[myId] && uid !== myId) crushesOnMe[uid] = true; });
     const matchSnap = await db.ref(`soirees/${SOIREE_ID}/matches/${myId}`).get();
     const myMatches = matchSnap.val() || {};
-
     document.getElementById('disc-count').textContent = others.length + ' présents';
-
     const list = document.getElementById('cards-list');
-    if (others.length === 0) {
-      list.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--dim);font-size:14px;">Tu es le premier arrivé !<br>Les autres profils apparaîtront ici.</div>';
-      return;
-    }
-
+    if (others.length === 0) { list.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--dim);font-size:14px;">Tu es le premier arrivé !<br>Les autres profils apparaîtront ici.</div>'; return; }
     list.innerHTML = '';
+    const colors = ['#6C3FC5','#A67FF5','#534AB7','#3C3489','#7F77DD'];
     others.forEach(([uid, p]) => {
       const iCrushed = !!myCrushes[uid];
       const theyCrushed = !!crushesOnMe[uid];
-      const isMatch = iCrushed && theyCrushed;
       const card = document.createElement('div');
       card.className = 'person-card' + (iCrushed ? ' crushed' : '') + (theyCrushed && !iCrushed ? ' crushed-back' : '');
       card.id = 'card-' + uid;
       const initial = p.prenom ? p.prenom[0].toUpperCase() : '?';
-      const avatarColors = ['#6C3FC5','#A67FF5','#534AB7','#3C3489','#7F77DD'];
-      const color = avatarColors[Math.abs(uid.charCodeAt(5) || 0) % avatarColors.length];
-      card.innerHTML = `
-        <div class="pc-photo" style="background:${color}22;">
-          ${theyCrushed ? '<div class="pc-crush-tag">&#128149; t\'a crushed</div>' : ''}
-          <div class="pc-avatar" style="background:${color};">${initial}</div>
-          <div class="pc-tag">Ce soir</div>
-        </div>
-        <div class="pc-body">
-          <div class="pc-name">${p.prenom || '?'}</div>
-          <div class="pc-age">${p.age ? p.age + ' ans' : ''}</div>
-          <div class="pc-mots">${(p.mots||[]).map(m=>`<span class="pc-mot">${m}</span>`).join('')}</div>
-          ${p.reponse ? `<div class="pc-reponse"><div class="pr-q">La chose la plus folle faite spontanément</div><div class="pr-a">"${p.reponse}"</div></div>` : ''}
-          <div class="pc-actions">
-            <button class="btn-crush ${iCrushed?'active':''}" id="crush-btn-${uid}" onclick="toggleCrush('${uid}','${p.prenom||'?'}','${initial}','${color}')">${iCrushed ? '&#128149; Crushé !' : 'Crusher'}</button>
-            <button class="btn-pass">Passer</button>
-          </div>
-        </div>
-      `;
+      const color = colors[Math.abs((uid.charCodeAt(5)||0)) % colors.length];
+      card.innerHTML = `<div class="pc-photo" style="background:${color}22;">${theyCrushed?'<div class="pc-crush-tag">💗 t\'a crushed</div>':''}<div class="pc-avatar" style="background:${color};">${initial}</div><div class="pc-tag">Ce soir</div></div><div class="pc-body"><div class="pc-name">${p.prenom||'?'}</div><div class="pc-age">${p.age?p.age+' ans':''}</div><div class="pc-mots">${(p.mots||[]).map(m=>`<span class="pc-mot">${m}</span>`).join('')}</div>${p.reponse?`<div class="pc-reponse"><div class="pr-q">La chose la plus folle faite spontanément</div><div class="pr-a">"${p.reponse}"</div></div>`:''}<div class="pc-actions"><button class="btn-crush ${iCrushed?'active':''}" id="crush-btn-${uid}" onclick="toggleCrush('${uid}','${p.prenom||'?'}','${initial}','${color}')">${iCrushed?'💗 Crushé!':'Crusher'}</button><button class="btn-pass">Passer</button></div></div>`;
       list.appendChild(card);
     });
-
     updateStats(Object.keys(myCrushes).length, Object.keys(crushesOnMe).length, Object.keys(myMatches).length);
   });
 }
@@ -752,210 +888,146 @@ async function toggleCrush(uid, prenom, initial, color) {
   const card = document.getElementById('card-' + uid);
   const crushRef = db.ref(`soirees/${SOIREE_ID}/crushes/${myId}/${uid}`);
   const snap = await crushRef.get();
-
   if (!snap.val()) {
     await crushRef.set(true);
-    btn.innerHTML = '&#128149; Crushé !';
-    btn.classList.add('active');
-    card.classList.add('crushed');
-
-    // Vérifier si match
+    btn.innerHTML = '💗 Crushé!'; btn.classList.add('active'); card.classList.add('crushed');
+    // Notif à l'autre
+    await db.ref(`soirees/${SOIREE_ID}/notifications/${uid}`).push({ type: 'crush', from: myProfil.prenom, ts: Date.now() });
     const theirCrush = await db.ref(`soirees/${SOIREE_ID}/crushes/${uid}/${myId}`).get();
-    if (theirCrush.val()) {
-      // C'est un match ! Montrer la modal
-      pendingMatchPerson = { uid, prenom, initial, color };
-      openMatchModal(prenom, initial, color);
-    }
+    if (theirCrush.val()) { pendingMatchPerson = { uid, prenom, initial, color }; openMatchModal(prenom, initial, color); }
   } else {
     await crushRef.remove();
-    btn.innerHTML = 'Crusher';
-    btn.classList.remove('active');
-    card.classList.remove('crushed');
+    btn.innerHTML = 'Crusher'; btn.classList.remove('active'); card.classList.remove('crushed');
   }
 }
 
-// ─── LISTEN CRUSHES RECEIVED ───────────────────────────────────────────────
+// ─── NOTIFICATIONS ─────────────────────────────────────────────────────────
 function listenCrushesReceived() {
   db.ref(`soirees/${SOIREE_ID}/crushes`).on('value', snap => {
     const all = snap.val() || {};
     let count = 0;
-    Object.entries(all).forEach(([uid, targets]) => {
-      if (uid !== myId && targets[myId]) count++;
-    });
+    Object.entries(all).forEach(([uid, targets]) => { if (uid !== myId && targets[myId]) count++; });
     const badge = document.getElementById('matches-nav-badge');
-    if (count > 0) {
-      badge.setAttribute('data-count', count);
-    } else {
-      badge.removeAttribute('data-count');
-    }
+    if (count > 0) badge.setAttribute('data-count', count); else badge.removeAttribute('data-count');
   });
+  // Écouter les notifs personnelles
+  if (myId) {
+    db.ref(`soirees/${SOIREE_ID}/notifications/${myId}`).on('child_added', snap => {
+      const n = snap.val();
+      if (!n) return;
+      if (n.type === 'crush') showToast('💗', `${n.from} t'a crushed !`);
+      if (n.type === 'match') showToast('💜', `Match avec ${n.from} !`);
+      if (n.type === 'message') showToast('💬', `Message de ${n.from}`);
+      if (n.type === 'broadcast') showToast('📢', n.text);
+      if (n.type === 'nouvelle_soiree') showToast('📅', n.text);
+    });
+  }
+}
+
+function showToast(icon, text) {
+  const toast = document.getElementById('toast');
+  document.getElementById('toast-icon').textContent = icon;
+  document.getElementById('toast-text').textContent = text;
+  toast.classList.remove('hidden');
+  // Vibration si supportée
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+  setTimeout(() => toast.classList.add('hidden'), 4000);
 }
 
 // ─── MATCHES ───────────────────────────────────────────────────────────────
 function listenMatches() {
-  db.ref(`soirees/${SOIREE_ID}`).on('value', async snap => {
-    const data = snap.val() || {};
-    const participants = data.participants || {};
-    const allCrushes = data.crushes || {};
-    const allMatches = data.matches || {};
-
+  db.ref(`soirees/${SOIREE_ID}/crushes`).on('value', async snap => {
+    const allCrushes = snap.val() || {};
     const myCrushes = allCrushes[myId] || {};
-    const myValidated = allMatches[myId] || {};
-
-    // Qui m'a crushé
     const crushesOnMe = {};
-    Object.entries(allCrushes).forEach(([uid, targets]) => {
-      if (uid !== myId && targets && targets[myId]) crushesOnMe[uid] = true;
-    });
-
-    // Matches mutuels
-    const mutualMatches = Object.keys(myCrushes).filter(uid => crushesOnMe[uid]);
-
+    Object.entries(allCrushes).forEach(([uid, targets]) => { if (uid !== myId && targets[myId]) crushesOnMe[uid] = true; });
+    const matchSnap = await db.ref(`soirees/${SOIREE_ID}/matches/${myId}`).get();
+    const myValidated = matchSnap.val() || {};
+    const partSnap = await db.ref(`soirees/${SOIREE_ID}/participants`).get();
+    const participants = partSnap.val() || {};
     const content = document.getElementById('matches-content');
     content.innerHTML = '';
-
-    // Bannière crushes reçus
-    const recvCount = Object.keys(crushesOnMe).length;
-    if (recvCount > 0) {
-      const banner = document.createElement('div');
-      banner.className = 'crush-banner';
-      banner.innerHTML = `
-        <div class="cb-icon">&#128149;</div>
-        <div class="cb-text">
-          <div class="cb-title">${recvCount} personne${recvCount > 1 ? 's' : ''} t'a${recvCount > 1 ? 'ont' : ''} crushed ce soir</div>
-          <div class="cb-sub">Voir qui ci-dessous</div>
-        </div>
-      `;
-      content.appendChild(banner);
-    }
-
-    // Section matches mutuels
+    const colors = ['#6C3FC5','#A67FF5','#534AB7','#3C3489','#7F77DD'];
+    const mutualMatches = Object.keys(myCrushes).filter(uid => crushesOnMe[uid]);
+    let recvCount = 0;
     if (mutualMatches.length > 0) {
-      const sec = document.createElement('div');
-      sec.className = 'match-section';
-      sec.innerHTML = '<div class="section-label">Matches mutuels</div>';
+      const sec = document.createElement('div'); sec.className = 'match-section';
+      sec.innerHTML = '<div class="section-label">Matches mutuels 💜</div>';
       mutualMatches.forEach(uid => {
-        const p = participants[uid] || {};
+        const p = participants[uid] || {}; const initial = p.prenom?p.prenom[0].toUpperCase():'?';
+        const color = colors[Math.abs((uid.charCodeAt(5)||0))%colors.length];
         const validated = myValidated[uid];
         const item = document.createElement('div');
         item.className = 'match-item is-match';
-        const initial = p.prenom ? p.prenom[0].toUpperCase() : '?';
-        const avatarColors = ['#6C3FC5','#A67FF5','#534AB7','#3C3489','#7F77DD'];
-        const color = avatarColors[Math.abs((uid.charCodeAt(5)||0)) % avatarColors.length];
-        item.innerHTML = `
-          <div class="mi-avatar" style="background:${color};">${initial}<div class="mi-dot">&#10084;</div></div>
-          <div class="mi-info">
-            <div class="mi-name">${p.prenom || '?'}</div>
-            <div class="mi-preview">${validated ? intentionLabels[validated] || validated : 'Match mutuel · Valide pour continuer'}</div>
-          </div>
-          <div class="mi-badge ${validated ? 'validated' : 'match'}">${validated ? '&#10003;' : 'Match'}</div>
-        `;
-        if (validated) {
-          item.onclick = () => openChat(uid, p.prenom, initial, color, validated);
-        } else {
-          item.onclick = () => { pendingMatchPerson = {uid, prenom: p.prenom, initial, color}; openMatchModal(p.prenom, initial, color); };
-        }
+        item.onclick = () => openChat(uid, p.prenom||'?', initial, color, validated);
+        item.innerHTML = `<div class="mi-avatar" style="background:${color};">${initial}<div class="mi-dot">💜</div></div><div class="mi-info"><div class="mi-name">${p.prenom||'?'}</div><div class="mi-preview">${validated?intentionLabels[validated]:'Touchez pour ouvrir le chat'}</div></div><div class="mi-badge ${validated?'validated':'match'}">${validated?'✓':''}</div>`;
         sec.appendChild(item);
       });
       content.appendChild(sec);
     }
-
-    // Section crushes reçus (non mutuels)
-    const nonMutual = Object.keys(crushesOnMe).filter(uid => !myCrushes[uid]);
-    if (nonMutual.length > 0) {
-      const sec = document.createElement('div');
-      sec.className = 'match-section';
-      sec.innerHTML = '<div class="section-label">Qui t\'a crushed</div>';
-      nonMutual.forEach(uid => {
-        const p = participants[uid] || {};
-        const item = document.createElement('div');
-        item.className = 'match-item';
-        const initial = p.prenom ? p.prenom[0].toUpperCase() : '?';
-        const avatarColors = ['#6C3FC5','#A67FF5','#534AB7','#3C3489','#7F77DD'];
-        const color = avatarColors[Math.abs((uid.charCodeAt(5)||0)) % avatarColors.length];
-        item.innerHTML = `
-          <div class="mi-avatar" style="background:${color};">${initial}</div>
-          <div class="mi-info">
-            <div class="mi-name">${p.prenom || '?'}</div>
-            <div class="mi-preview">A crushed sur toi ce soir</div>
-          </div>
-          <div class="mi-badge crush">Crush</div>
-        `;
-        content.appendChild(item);
+    const recvOnly = Object.keys(crushesOnMe).filter(uid => !myCrushes[uid]);
+    recvCount = recvOnly.length;
+    if (recvOnly.length > 0) {
+      const sec = document.createElement('div'); sec.className = 'match-section';
+      sec.innerHTML = '<div class="section-label">Crushes reçus</div>';
+      recvOnly.forEach(uid => {
+        const p = participants[uid] || {}; const initial = p.prenom?p.prenom[0].toUpperCase():'?';
+        const color = colors[Math.abs((uid.charCodeAt(5)||0))%colors.length];
+        const item = document.createElement('div'); item.className = 'match-item';
+        item.innerHTML = `<div class="mi-avatar" style="background:${color};">${initial}</div><div class="mi-info"><div class="mi-name">${p.prenom||'?'}</div><div class="mi-preview">t'a crushed !</div></div><div class="mi-badge crush">💗</div>`;
         sec.appendChild(item);
       });
       content.appendChild(sec);
     }
-
-    // Section mes crushes envoyés (sans retour)
     const sentNoReturn = Object.keys(myCrushes).filter(uid => !crushesOnMe[uid]);
     if (sentNoReturn.length > 0) {
-      const sec = document.createElement('div');
-      sec.className = 'match-section';
+      const sec = document.createElement('div'); sec.className = 'match-section';
       sec.innerHTML = '<div class="section-label">Mes crushes envoyés</div>';
       sentNoReturn.forEach(uid => {
-        const p = participants[uid] || {};
-        const item = document.createElement('div');
-        item.className = 'match-item';
-        const initial = p.prenom ? p.prenom[0].toUpperCase() : '?';
-        item.innerHTML = `
-          <div class="mi-avatar">${initial}</div>
-          <div class="mi-info">
-            <div class="mi-name">${p.prenom || '?'}</div>
-            <div class="mi-preview">Tu as crushed sur cette personne</div>
-          </div>
-          <div class="mi-badge crush">&#128149;</div>
-        `;
+        const p = participants[uid] || {}; const initial = p.prenom?p.prenom[0].toUpperCase():'?';
+        const item = document.createElement('div'); item.className = 'match-item';
+        item.innerHTML = `<div class="mi-avatar">${initial}</div><div class="mi-info"><div class="mi-name">${p.prenom||'?'}</div><div class="mi-preview">Tu as crushed sur cette personne</div></div><div class="mi-badge crush">💗</div>`;
         sec.appendChild(item);
       });
       content.appendChild(sec);
     }
-
     if (recvCount === 0 && mutualMatches.length === 0 && Object.keys(myCrushes).length === 0) {
       content.innerHTML = '<div class="no-content">Tes connexions apparaîtront ici<br>au fil de la soirée.</div>';
     }
-
     updateStats(Object.keys(myCrushes).length, recvCount, Object.keys(myValidated).length);
   });
 }
 
-// ─── MODAL INTENTION ───────────────────────────────────────────────────────
+// ─── MATCH MODAL ───────────────────────────────────────────────────────────
 function openMatchModal(prenom, initial, color) {
   selectedIntentionValue = null;
   document.querySelectorAll('.intention-btn').forEach(b => b.classList.remove('selected'));
   const btn = document.getElementById('modal-validate');
-  btn.style.opacity = '0.4';
-  btn.style.pointerEvents = 'none';
+  btn.style.opacity = '0.4'; btn.style.pointerEvents = 'none';
   document.getElementById('modal-avatar').textContent = initial;
   document.getElementById('modal-avatar').style.background = color;
   document.getElementById('modal-title').textContent = 'Match avec ' + prenom + ' !';
-  document.getElementById('modal-sub').innerHTML = `Vous vous êtes crushés mutuellement.<br>Comment tu vois la suite ?`;
   document.getElementById('modal-intention').classList.remove('hidden');
 }
 
 function selectIntention(el, val) {
   document.querySelectorAll('.intention-btn').forEach(b => b.classList.remove('selected'));
-  el.classList.add('selected');
-  selectedIntentionValue = val;
+  el.classList.add('selected'); selectedIntentionValue = val;
   const btn = document.getElementById('modal-validate');
-  btn.style.opacity = '1';
-  btn.style.pointerEvents = 'auto';
+  btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
 }
 
 async function validateMatch() {
   if (!selectedIntentionValue || !pendingMatchPerson) return;
   const { uid, prenom, initial, color } = pendingMatchPerson;
   await db.ref(`soirees/${SOIREE_ID}/matches/${myId}/${uid}`).set(selectedIntentionValue);
+  await db.ref(`soirees/${SOIREE_ID}/notifications/${uid}`).push({ type: 'match', from: myProfil.prenom, ts: Date.now() });
   closeModal();
   showCelebration(prenom, initial, color, selectedIntentionValue);
 }
 
-function closeModal() {
-  document.getElementById('modal-intention').classList.add('hidden');
-  pendingMatchPerson = null;
-}
+function closeModal() { document.getElementById('modal-intention').classList.add('hidden'); pendingMatchPerson = null; }
 
-// ─── CELEBRATION ───────────────────────────────────────────────────────────
 function showCelebration(prenom, initial, color, intention) {
   document.getElementById('celeb-av1').textContent = myProfil.prenom[0].toUpperCase();
   document.getElementById('celeb-av2').textContent = initial;
@@ -967,12 +1039,8 @@ function showCelebration(prenom, initial, color, intention) {
 
 function closeCelebration() {
   document.getElementById('celebration').classList.add('hidden');
-  if (pendingMatchPerson) {
-    const { uid, prenom, initial, color } = pendingMatchPerson;
-    openChat(uid, prenom, initial, color, selectedIntentionValue);
-  } else {
-    showTab('matches');
-  }
+  if (pendingMatchPerson) { const { uid, prenom, initial, color } = pendingMatchPerson; openChat(uid, prenom, initial, color, selectedIntentionValue); }
+  else showTab('matches');
 }
 
 // ─── CHAT ──────────────────────────────────────────────────────────────────
@@ -983,19 +1051,14 @@ function openChat(uid, prenom, initial, color, intention) {
   document.getElementById('chat-name').textContent = prenom;
   document.getElementById('chat-intention').innerHTML = intentionLabels[intention] || 'Match depuis ce soir';
   const msgs = document.getElementById('chat-messages');
-  msgs.innerHTML = '<div style="text-align:center;font-size:12px;color:var(--dim);padding:8px 0;">Vous vous êtes rencontrés ce soir à la Soirée Étincelle</div>';
-
-  // Écouter les messages Firebase
+  msgs.innerHTML = '<div style="text-align:center;font-size:12px;color:var(--dim);padding:8px 0;">Vous vous êtes rencontrés ce soir</div>';
   const chatKey = [myId, uid].sort().join('_');
   db.ref(`soirees/${SOIREE_ID}/chats/${chatKey}`).on('value', snap => {
     const data = snap.val() || {};
-    msgs.innerHTML = '<div style="text-align:center;font-size:12px;color:var(--dim);padding:8px 0;">Vous vous êtes rencontrés ce soir à la Soirée Étincelle</div>';
-    Object.values(data).sort((a,b) => a.ts - b.ts).forEach(m => {
-      appendMsg(m.senderId === myId ? 'sent' : 'recv', m.text, m.time);
-    });
+    msgs.innerHTML = '<div style="text-align:center;font-size:12px;color:var(--dim);padding:8px 0;">Vous vous êtes rencontrés ce soir</div>';
+    Object.values(data).sort((a,b) => a.ts - b.ts).forEach(m => { appendMsg(m.senderId === myId ? 'sent' : 'recv', m.text, m.time); });
     msgs.scrollTop = msgs.scrollHeight;
   });
-
   showScreen('chat');
 }
 
@@ -1015,12 +1078,182 @@ async function sendMessage() {
   const now = new Date();
   const time = now.getHours() + 'h' + String(now.getMinutes()).padStart(2,'0');
   const chatKey = [myId, currentChatPerson.uid].sort().join('_');
-  await db.ref(`soirees/${SOIREE_ID}/chats/${chatKey}`).push({
-    senderId: myId,
-    text, time, ts: Date.now()
+  await db.ref(`soirees/${SOIREE_ID}/chats/${chatKey}`).push({ senderId: myId, text, time, ts: Date.now() });
+  await db.ref(`soirees/${SOIREE_ID}/notifications/${currentChatPerson.uid}`).push({ type: 'message', from: myProfil.prenom, ts: Date.now() });
+  input.value = ''; input.style.height = 'auto';
+}
+
+// ─── COMMENTAIRES ──────────────────────────────────────────────────────────
+function listenComments() {
+  db.ref(`soirees/${SOIREE_ID}/commentaires`).on('value', snap => {
+    const data = snap.val() || {};
+    const list = document.getElementById('comments-list');
+    const items = Object.entries(data).sort((a,b) => (b[1].ts||0) - (a[1].ts||0));
+    if (items.length === 0) { list.innerHTML = '<div class="no-content">Sois le premier à donner ton avis !</div>'; return; }
+    list.innerHTML = '<div style="padding:12px 0 4px;">' + items.map(([key, c]) =>
+      `<div class="comment-item">
+        <div class="comment-header">
+          <span class="comment-author">${c.prenom||'Anonyme'}</span>
+          <span class="comment-date">${c.time||''}</span>
+        </div>
+        <div class="comment-text">${c.text}</div>
+      </div>`
+    ).join('') + '</div>';
   });
+}
+
+async function sendComment() {
+  const input = document.getElementById('comment-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const now = new Date();
+  const time = now.getDate() + '/' + (now.getMonth()+1) + ' ' + now.getHours() + 'h' + String(now.getMinutes()).padStart(2,'0');
+  await db.ref(`soirees/${SOIREE_ID}/commentaires`).push({ prenom: myProfil?.prenom || 'Anonyme', text, time, ts: Date.now(), uid: myId });
   input.value = '';
-  input.style.height = 'auto';
+}
+
+// ─── BROADCAST ─────────────────────────────────────────────────────────────
+function listenBroadcast() {
+  db.ref(`soirees/${SOIREE_ID}/broadcast`).on('child_added', snap => {
+    const n = snap.val();
+    if (n) showToast('📢', n.text);
+  });
+}
+
+// ─── SIGNALEMENT ───────────────────────────────────────────────────────────
+function openSignalement() { document.getElementById('modal-signalement').classList.remove('hidden'); }
+function closeSignalement() { document.getElementById('modal-signalement').classList.add('hidden'); }
+
+async function submitSignalement() {
+  const text = document.getElementById('signal-text').value.trim();
+  if (!text) { showToast('⚠️', 'Décris la situation avant d\'envoyer.'); return; }
+  const now = new Date();
+  await db.ref(`soirees/${SOIREE_ID}/signalements`).push({ prenom: myProfil?.prenom||'Anonyme', uid: myId, text, ts: Date.now(), time: now.toLocaleString('fr-FR') });
+  closeSignalement();
+  document.getElementById('signal-text').value = '';
+  showToast('✅', 'Signalement envoyé. L\'organisatrice a été notifiée.');
+}
+
+// ─── ADMIN ─────────────────────────────────────────────────────────────────
+let adminTapCount2 = 0;
+function adminTap() {
+  adminTapCount2++;
+  if (adminTapCount2 >= 5) { adminTapCount2 = 0; document.getElementById('modal-admin-login').classList.remove('hidden'); }
+  setTimeout(() => { adminTapCount2 = 0; }, 3000);
+}
+
+function closeAdminLogin() { document.getElementById('modal-admin-login').classList.add('hidden'); document.getElementById('admin-pwd-input').value = ''; }
+
+function checkAdminPwd() {
+  const pwd = document.getElementById('admin-pwd-input').value;
+  if (pwd === ADMIN_PWD) {
+    closeAdminLogin();
+    populateAdminSelect();
+    showScreen('admin');
+    loadAdminData();
+  } else {
+    showToast('❌', 'Mot de passe incorrect.');
+  }
+}
+
+function populateAdminSelect() {
+  const sel = document.getElementById('admin-soiree-select');
+  sel.innerHTML = SOIREES_DATA.map(s => `<option value="${s.id}">${s.nom} · ${s.date}</option>`).join('');
+}
+
+async function loadAdminData() {
+  const soireeId = document.getElementById('admin-soiree-select').value;
+
+  const [partSnap, crushSnap, matchSnap, commentSnap, signalSnap] = await Promise.all([
+    db.ref(`soirees/${soireeId}/participants`).get(),
+    db.ref(`soirees/${soireeId}/crushes`).get(),
+    db.ref(`soirees/${soireeId}/matches`).get(),
+    db.ref(`soirees/${soireeId}/commentaires`).get(),
+    db.ref(`soirees/${soireeId}/signalements`).get(),
+  ]);
+
+  const participants = partSnap.val() || {};
+  const crushes = crushSnap.val() || {};
+  const matches = matchSnap.val() || {};
+  const comments = commentSnap.val() || {};
+  const signals = signalSnap.val() || {};
+
+  // Stats
+  const nbMatches = Object.values(matches).reduce((acc, m) => acc + Object.keys(m).length, 0);
+  const nbCrushes = Object.values(crushes).reduce((acc, m) => acc + Object.keys(m).length, 0);
+  document.getElementById('admin-nb-participants').textContent = Object.keys(participants).length;
+  document.getElementById('admin-nb-crushes').textContent = nbCrushes;
+  document.getElementById('admin-nb-matches').textContent = nbMatches;
+  document.getElementById('admin-nb-comments').textContent = Object.keys(comments).length;
+
+  // Participants
+  const partList = document.getElementById('admin-participants-list');
+  const partEntries = Object.entries(participants);
+  if (partEntries.length === 0) { partList.innerHTML = '<div class="admin-row" style="color:var(--dim);font-size:13px;">Aucun participant</div>'; }
+  else {
+    partList.innerHTML = partEntries.map(([uid, p]) =>
+      `<div class="admin-row"><div class="admin-person">${p.prenom||'?'}, ${p.age||'?'} ans · ${p.genre||'?'}</div><div class="admin-person-sub">Mots : ${(p.mots||[]).join(', ')||'—'}</div></div>`
+    ).join('');
+  }
+
+  // Questionnaire
+  const questList = document.getElementById('admin-questionnaire-list');
+  const counts = {};
+  Object.values(participants).forEach(p => { (p.motivations||[]).forEach(m => { counts[m] = (counts[m]||0) + 1; }); });
+  if (Object.keys(counts).length === 0) { questList.innerHTML = '<div class="admin-row" style="color:var(--dim);font-size:13px;">Aucune réponse</div>'; }
+  else {
+    questList.innerHTML = Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,v]) =>
+      `<div class="admin-row admin-stat"><span class="admin-stat-label">${motivationLabels[k]||k}</span><span class="admin-stat-val">${v}</span></div>`
+    ).join('');
+  }
+
+  // Matches
+  const matchList = document.getElementById('admin-matches-list');
+  const matchPairs = [];
+  Object.entries(matches).forEach(([uid1, targets]) => {
+    Object.entries(targets).forEach(([uid2, intention]) => {
+      const p1 = participants[uid1]; const p2 = participants[uid2];
+      if (p1 && p2) matchPairs.push(`${p1.prenom||'?'} × ${p2.prenom||'?'} · ${intentionLabels[intention]||intention}`);
+    });
+  });
+  matchList.innerHTML = matchPairs.length === 0
+    ? '<div class="admin-row" style="color:var(--dim);font-size:13px;">Aucun match validé</div>'
+    : matchPairs.map(m => `<div class="admin-row"><div class="admin-person">${m}</div></div>`).join('');
+
+  // Commentaires + modération
+  const commList = document.getElementById('admin-comments-list');
+  const commEntries = Object.entries(comments).sort((a,b)=>(b[1].ts||0)-(a[1].ts||0));
+  commList.innerHTML = commEntries.length === 0
+    ? '<div class="admin-row" style="color:var(--dim);font-size:13px;">Aucun commentaire</div>'
+    : commEntries.map(([key, c]) =>
+      `<div class="admin-row" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+        <div><div class="admin-person">${c.prenom||'?'} · ${c.time||''}</div><div style="font-size:13px;color:var(--g);margin-top:4px;">${c.text}</div></div>
+        <button onclick="deleteComment('${soireeId}','${key}')" style="background:#A32D2D;color:#fff;border:none;border-radius:8px;padding:4px 8px;font-size:11px;cursor:pointer;flex-shrink:0;">Suppr.</button>
+      </div>`
+    ).join('');
+
+  // Signalements
+  const sigList = document.getElementById('admin-signals-list');
+  const sigEntries = Object.entries(signals).sort((a,b)=>(b[1].ts||0)-(a[1].ts||0));
+  sigList.innerHTML = sigEntries.length === 0
+    ? '<div class="admin-row" style="color:var(--dim);font-size:13px;">Aucun signalement</div>'
+    : sigEntries.map(([key, s]) =>
+      `<div class="signal-item"><div style="font-size:12px;color:#E24B4A;font-weight:500;">${s.prenom||'?'} · ${s.time||''}</div><div style="font-size:13px;color:#D4BBFF;margin-top:6px;line-height:1.5;">${s.text}</div></div>`
+    ).join('');
+}
+
+async function deleteComment(soireeId, key) {
+  if (!confirm('Supprimer ce commentaire ?')) return;
+  await db.ref(`soirees/${soireeId}/commentaires/${key}`).remove();
+  loadAdminData();
+}
+
+async function sendBroadcast() {
+  const text = document.getElementById('admin-broadcast-msg').value.trim();
+  if (!text) return;
+  await db.ref(`soirees/${SOIREE_ID}/broadcast`).push({ text, ts: Date.now() });
+  document.getElementById('admin-broadcast-msg').value = '';
+  showToast('📢', 'Message envoyé à tous !');
 }
 
 // ─── STATS ─────────────────────────────────────────────────────────────────
@@ -1033,45 +1266,33 @@ function updateStats(sent, recv, matched) {
 // ─── NAV ───────────────────────────────────────────────────────────────────
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
 }
 
 function showTab(tab) {
   showScreen(tab);
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  // Activer le bon nav-item dans l'écran actif
-  const activeScreen = document.getElementById(tab);
-  if (activeScreen) {
-    const navItems = activeScreen.querySelectorAll('.nav-bar .nav-item');
-    const tabOrder = ['discover','matches','agenda','profil'];
-    const idx = tabOrder.indexOf(tab);
-    if (idx >= 0 && navItems[idx]) navItems[idx].classList.add('active');
-  }
 }
 
 // ─── LOGOUT ────────────────────────────────────────────────────────────────
-function logout() {
-  myId = null; myProfil = null;
-  localStorage.removeItem(LOCAL_KEY);
-  renderSplash();
-  showScreen('splash');
-}
+function logout() { myId = null; myProfil = null; isLoggedIn = false; localStorage.removeItem(LOCAL_KEY); renderSplash(); showScreen('splash'); }
 
 async function resetAll() {
-  if (!confirm('Effacer ton profil et quitter la soirée ?')) return;
+  if (!confirm('Effacer ton profil ?')) return;
   if (myId) await db.ref(`soirees/${SOIREE_ID}/participants/${myId}`).remove();
   logout();
 }
 
 // ─── UTILS ─────────────────────────────────────────────────────────────────
-function autoResize(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
-}
+function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px'; }
 
 document.getElementById('chat-input').addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 });
+
+// ─── PWA INSTALL ───────────────────────────────────────────────────────────
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; });
 
 // ─── START ─────────────────────────────────────────────────────────────────
 init();
