@@ -284,6 +284,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div style="display:flex;align-items:center;gap:12px"><button class="btn-back" onclick="showScreen('splash')">&#8592;</button><div><div class="screen-title" id="dash-title">Bonjour !</div><div class="screen-sub">Voici tes activités</div></div></div>
   </div>
   <div class="scrollable"><div style="padding:12px 0 40px">
+    <div id="dash-notifs-wrap" style="display:none;padding:0 20px;margin-bottom:12px">
+      <div style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;font-weight:500;margin-bottom:10px">Nouveautés 🔔</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap" id="dash-notifs-pills"></div>
+    </div>
     <div class="dash-section"><div class="dash-section-title">💜 Activité</div>
       <div class="dash-item" onclick="showScreen('connexions');listenConnexions()"><div class="dash-icon">💗</div><div class="dash-label">Mes crush</div><div class="dash-badge" id="dash-crushes-badge" style="display:none">0</div><div class="dash-arrow">›</div></div>
       <div class="dash-item" onclick="showScreen('connexions');listenConnexions()"><div class="dash-icon">💜</div><div class="dash-label">Mes matches</div><div class="dash-badge" id="dash-matches-badge" style="display:none">0</div><div class="dash-arrow">›</div></div>
@@ -429,7 +433,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <!-- PROFIL -->
 <div class="screen" id="profil">
-  <div class="profil-top">
+  <div style="padding:max(56px,env(safe-area-inset-top)) 20px 0;display:flex;align-items:center;gap:12px;flex-shrink:0">
+    <button class="btn-back" onclick="showScreen('dashboard')">&#8592;</button>
+    <div style="font-size:16px;color:var(--g)">Mon profil</div>
+  </div>
+  <div class="profil-top" style="padding-top:16px">
     <div class="profil-av" id="profil-initial" style="background:var(--v)">?</div>
     <div style="font-size:20px;font-weight:500;color:#fff" id="profil-name">Mon profil</div>
     <div style="font-size:13px;color:var(--vl);margin-top:4px" id="profil-bday"></div>
@@ -621,7 +629,7 @@ function showTab(tab){
 function renderSplash(){
   const c=document.getElementById('splash-content');
   if(myProfil){
-    c.innerHTML=`<div style="text-align:center"><div style="font-size:22px;font-weight:500;color:#fff;margin-bottom:4px">Bon retour, ${myProfil.prenom} ! 👋</div><div style="font-size:13px;color:var(--g);margin-bottom:16px">Content·e de te revoir</div></div><div class="notif-pills" id="splash-pills"></div><button class="btn-primary" onclick="enterApp()" style="margin-top:4px">Entrer ✨</button><button class="btn-ghost" onclick="showScreen('typologies')" style="margin-top:4px">Voir les soirées</button>`;
+    c.innerHTML=`<div style="text-align:center"><div style="font-size:22px;font-weight:500;color:#fff;margin-bottom:4px">Bon retour, ${myProfil.prenom} ! 👋</div><div style="font-size:13px;color:var(--g);margin-bottom:16px">Contente de te revoir 💜</div></div><div class="notif-pills" id="splash-pills"></div><button class="btn-primary" onclick="enterApp()" style="margin-top:4px">Entrer ✨</button><button class="btn-ghost" onclick="showScreen('typologies')" style="margin-top:4px">Voir les soirées</button>`;
     loadSplashStats();
   }else{
     c.innerHTML=`<button class="btn-primary" onclick="showScreen('inscription')">Créer mon profil</button><button class="btn-ghost" onclick="showScreen('typologies')" style="margin-top:4px">Voir les soirées</button>`;
@@ -658,22 +666,29 @@ function filterByHashtag(val){document.getElementById('hashtag-search-input').va
 async function openSoireeDetail(soireeId){
   const s=SOIREES_DB[soireeId];if(!s)return;
   const typo=TYPOLOGIES.find(t=>t.id===s.typo);
+  const isPast=s.ts<Date.now()-86400000;
   document.getElementById('sd-title').textContent=s.nom;
-  let nbF=0,nbH=0,nbAttF=0,nbAttH=0;
+  let nbF=0,nbH=0,nbAttF=0,nbAttH=0,participants={};
   try{
     const partSnap=await db.ref(`soirees/${soireeId}/participants`).get();
-    const parts=partSnap.val()||{};
-    Object.values(parts).forEach(p=>{if(p.genre==='femme')nbF++;else nbH++;});
+    participants=partSnap.val()||{};
+    Object.values(participants).forEach(p=>{if(p.genre==='femme')nbF++;else nbH++;});
     const attSnap=await db.ref(`soirees/${soireeId}/attente`).get();
     const att=attSnap.val()||{};
     Object.values(att).forEach(p=>{if(p.genre==='femme')nbAttF++;else nbAttH++;});
   }catch(e){}
   const total=nbF+nbH,jauge=s.jauge||40,pct=Math.min(100,Math.round(total/jauge*100)),isFull=total>=jauge;
   const isRegistered=myProfil&&SOIREE_ID===soireeId;
-  const tags=typo?typo.tags.slice(0,4).map(t=>`<span class="sd-tag" onclick="filterByHashtag('${t}')">${t}</span>`).join(''):'';
+  const tags=typo?typo.tags.slice(0,4).map(t=>`<span class="sd-tag" onclick="filterByHashtag('${t}')">${t}</span>`).join(''):'';  // Liste des participants
+  const COLORS2=['#6C3FC5','#A67FF5','#534AB7','#3C3489','#7F77DD','#9B59B6','#27AE60','#C0392B'];
+  const partEntries=Object.entries(participants);
+  const partListHTML=partEntries.length>0
+    ?`<div style="padding:0 20px 8px"><div style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;font-weight:500;margin-bottom:10px">${isPast?'Participants de la soirée':'Participants inscrits'} (${partEntries.length})</div><div style="display:flex;flex-wrap:wrap;gap:8px">${partEntries.map(([uid,p])=>{const col=COLORS2[Math.abs((uid.charCodeAt(5)||0))%COLORS2.length];const ini=p.prenom?p.prenom[0].toUpperCase():'?';return `<div style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:6px 12px"><div style="width:24px;height:24px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#fff">${ini}</div><span style="font-size:13px;color:#fff">${p.prenom||'?'}</span></div>`;}).join('')}</div></div>`
+    :`<div style="padding:0 20px 8px;font-size:13px;color:var(--dim)">Aucun participant inscrit pour l'instant.</div>`;
   document.getElementById('sd-content').innerHTML=`
     <div class="sd-header"><div style="font-size:36px;margin-bottom:8px">${typo?typo.emoji:'🎉'}</div><div class="sd-name">${s.nom}</div><div class="sd-format">${s.format}</div><div class="sd-tags">${tags}</div><div class="sd-info-row">📅 ${s.date}</div><div class="sd-info-row">⏰ ${s.horaire}</div><div class="sd-info-row">📍 ${s.lieu}</div><div class="sd-info-row">🎟 ${s.tarif}</div><div class="sd-info-row">🚇 Raccompagnement métro inclus</div></div>
     <div class="sd-jauge"><div class="jauge-label">Places disponibles</div><div class="jauge-bar-wrap"><div class="jauge-bar" style="width:${pct}%;background:${isFull?'#C0392B':'var(--v)'}"></div></div><div class="jauge-counts"><span>👩 ${nbF}</span><span>👨 ${nbH}</span><span>${jauge-total>0?jauge-total+' restantes':'Complet'}</span></div></div>
+    ${partListHTML}
     ${isFull?`<div class="attente-section"><div class="attente-title">⏳ Liste d'attente</div><div class="attente-counts">👩 ${nbAttF} · 👨 ${nbAttH} en attente</div>${myProfil?`<button class="btn-primary" onclick="joinAttente('${soireeId}')" style="padding:12px;font-size:14px">S'inscrire sur la liste d'attente</button>`:''}</div>`:''}
     <div style="padding:0 20px 40px">
       ${isRegistered?`<button class="btn-primary" onclick="enterApp()">Rejoindre cette soirée ✨</button><button class="btn-ghost" style="margin-top:10px" onclick="leaveSoiree('${soireeId}')">Se désinscrire</button>`:myProfil?`<button class="btn-primary" onclick="${isFull?`joinAttente('${soireeId}')`:` selectAndJoin('${soireeId}')`}" style="background:${isFull?'#6B5FAD':'var(--v)'}">${isFull?"Liste d'attente":'Rejoindre cette soirée'}</button>`:`<button class="btn-primary" onclick="showScreen('inscription')">Créer mon profil pour rejoindre</button>`}
@@ -794,15 +809,31 @@ async function renderDashboard(){
   document.getElementById('dash-soirees-upcoming').innerHTML=upcoming.length>0?upcoming.map(([id,s])=>`<div class="soiree-mini" onclick="openSoireeDetail('${id}')"><div><div class="sm-name">${s.nom}</div><div class="sm-date">${s.date}</div></div><span class="sm-badge upcoming">Inscrit·e</span></div>`).join(''):`<div class="dash-item"><div class="dash-label" style="color:var(--dim)">Aucune soirée à venir · <a onclick="showScreen('typologies')" style="color:var(--vl);cursor:pointer">Explorer</a></div></div>`;
   document.getElementById('dash-soirees-past').innerHTML=past.length>0?past.map(([id,s])=>`<div class="soiree-mini" onclick="openSoireeDetail('${id}')"><div><div class="sm-name">${s.nom}</div><div class="sm-date">${s.date}</div></div><span class="sm-badge past">Passée</span></div>`).join(''):'<div class="dash-item"><div class="dash-label" style="color:var(--dim)">Aucune soirée passée</div></div>';
   try{
-    const crushSnap=await db.ref(`soirees/${SOIREE_ID}/crushes`).get();
-    const all=crushSnap.val()||{};
-    const recv=Object.entries(all).filter(([uid,t])=>uid!==myId&&t[myId]).length;
-    const sent=Object.keys(all[myId]||{}).length;
-    if(recv>0){document.getElementById('dash-crushes-badge').textContent=recv;document.getElementById('dash-crushes-badge').style.display='block';}
-    const matchSnap=await db.ref(`soirees/${SOIREE_ID}/matches/${myId}`).get();
-    const mc=Object.keys(matchSnap.val()||{}).length;
-    if(mc>0){document.getElementById('dash-matches-badge').textContent=mc;document.getElementById('dash-matches-badge').style.display='block';}
-    updateStats(sent,recv,mc);
+    // Compter sur toutes les soirées
+    let totalRecvCrushes=0, totalMatches=0, totalMsgs=0, totalSent=0;
+    for(const sid of Object.keys(SOIREES_DB)){
+      try{
+        const crushSnap=await db.ref(`soirees/${sid}/crushes`).get();
+        const all=crushSnap.val()||{};
+        const recv=Object.entries(all).filter(([uid,t])=>uid!==myId&&t[myId]).length;
+        const sent=Object.keys(all[myId]||{}).length;
+        totalRecvCrushes+=recv; totalSent+=sent;
+        const matchSnap=await db.ref(`soirees/${sid}/matches/${myId}`).get();
+        const mc=Object.keys(matchSnap.val()||{}).length;
+        totalMatches+=mc;
+      }catch(e){}
+    }
+    // Badges activité
+    if(totalRecvCrushes>0){document.getElementById('dash-crushes-badge').textContent=totalRecvCrushes;document.getElementById('dash-crushes-badge').style.display='block';}
+    if(totalMatches>0){document.getElementById('dash-matches-badge').textContent=totalMatches;document.getElementById('dash-matches-badge').style.display='block';}
+    updateStats(totalSent,totalRecvCrushes,totalMatches);
+    // Vignettes nouveautés
+    const pills=[];
+    if(totalRecvCrushes>0)pills.push(`<div onclick="showScreen('connexions');listenConnexions()" style="background:var(--vd);border:1px solid var(--v);border-radius:16px;padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:8px"><span style="font-size:20px">💗</span><div><div style="font-size:14px;font-weight:500;color:#fff">${totalRecvCrushes} crush${totalRecvCrushes>1?'es':''}</div><div style="font-size:11px;color:var(--g)">Non réciproque${totalRecvCrushes>1?'s':''} en attente</div></div></div>`);
+    if(totalMatches>0)pills.push(`<div onclick="showScreen('connexions');listenConnexions()" style="background:var(--vd);border:1px solid var(--vl);border-radius:16px;padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:8px"><span style="font-size:20px">💜</span><div><div style="font-size:14px;font-weight:500;color:#fff">${totalMatches} match${totalMatches>1?'es':''}</div><div style="font-size:11px;color:var(--g)">Clique pour discuter</div></div></div>`);
+    const wrap=document.getElementById('dash-notifs-wrap');
+    const pillsEl=document.getElementById('dash-notifs-pills');
+    if(pills.length>0&&wrap&&pillsEl){wrap.style.display='block';pillsEl.innerHTML=pills.join('');}
   }catch(e){}
 }
 
@@ -1046,14 +1077,23 @@ async function sendGroupeMessage(){
 }
 
 
-function listenComments(){
-  db.ref(`soirees/${SOIREE_ID}/commentaires`).on('value',snap=>{
-    const data=snap.val()||{};
-    const list=document.getElementById('comments-list');
-    const items=Object.entries(data).sort((a,b)=>(b[1].ts||0)-(a[1].ts||0));
-    if(items.length===0){list.innerHTML='<div class="no-content">Sois le·la premier·e à donner ton avis !</div>';return;}
-    list.innerHTML='<div style="padding:12px 0 4px">'+items.map(([,c])=>`<div class="comment-item"><div class="comment-header"><span class="comment-author">${c.prenom||'?'}</span><span class="comment-date">${c.time||''}</span></div><div class="comment-text">${c.text}</div></div>`).join('')+'</div>';
-  });
+async function listenComments(){
+  const list=document.getElementById('comments-list');
+  list.innerHTML='<div class="no-content">Chargement...</div>';
+  // Charger les commentaires de TOUTES les soirées
+  let allItems=[];
+  for(const[sid,s]of Object.entries(SOIREES_DB)){
+    try{
+      const snap=await db.ref(`soirees/${sid}/commentaires`).get();
+      const data=snap.val()||{};
+      Object.entries(data).forEach(([key,c])=>{
+        allItems.push({...c,soireeNom:s.nom,soireeLabel:s.label,key,sid});
+      });
+    }catch(e){}
+  }
+  allItems.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  if(allItems.length===0){list.innerHTML='<div class="no-content">Sois le·la premier·e à donner ton avis !</div>';return;}
+  list.innerHTML='<div style="padding:12px 0 4px">'+allItems.map(c=>`<div class="comment-item"><div class="comment-header"><span class="comment-author">${c.prenom||'?'}</span><span class="comment-date">${c.soireeLabel||''} · ${c.time||''}</span></div><div class="comment-text">${c.text}</div></div>`).join('')+'</div>';
 }
 async function sendComment(){
   const input=document.getElementById('comment-input');const text=input.value.trim();if(!text)return;
