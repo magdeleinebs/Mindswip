@@ -678,7 +678,12 @@ async function openSoireeDetail(soireeId){
     Object.values(att).forEach(p=>{if(p.genre==='femme')nbAttF++;else nbAttH++;});
   }catch(e){}
   const total=nbF+nbH,jauge=s.jauge||40,pct=Math.min(100,Math.round(total/jauge*100)),isFull=total>=jauge;
-  const isRegistered=myProfil&&SOIREE_ID===soireeId;
+  // Vérifier si inscrite à CETTE soirée (pas juste la soirée active)
+  let isRegistered=false;
+  try{
+    const regSnap=await db.ref(`soirees/${soireeId}/participants/${myId}`).get();
+    isRegistered=!!regSnap.val()&&!!myProfil;
+  }catch(e){}
   const tags=typo?typo.tags.slice(0,4).map(t=>`<span class="sd-tag" onclick="filterByHashtag('${t}')">${t}</span>`).join(''):'';  // Liste des participants
   const COLORS2=['#6C3FC5','#A67FF5','#534AB7','#3C3489','#7F77DD','#9B59B6','#27AE60','#C0392B'];
   const partEntries=Object.entries(participants);
@@ -691,7 +696,12 @@ async function openSoireeDetail(soireeId){
     ${partListHTML}
     ${isFull?`<div class="attente-section"><div class="attente-title">⏳ Liste d'attente</div><div class="attente-counts">👩 ${nbAttF} · 👨 ${nbAttH} en attente</div>${myProfil?`<button class="btn-primary" onclick="joinAttente('${soireeId}')" style="padding:12px;font-size:14px">S'inscrire sur la liste d'attente</button>`:''}</div>`:''}
     <div style="padding:0 20px 40px">
-      ${isRegistered?`<button class="btn-primary" onclick="enterApp()">Rejoindre cette soirée ✨</button><button class="btn-ghost" style="margin-top:10px" onclick="leaveSoiree('${soireeId}')">Se désinscrire</button>`:myProfil?`<button class="btn-primary" onclick="${isFull?`joinAttente('${soireeId}')`:` selectAndJoin('${soireeId}')`}" style="background:${isFull?'#6B5FAD':'var(--v)'}">${isFull?"Liste d'attente":'Rejoindre cette soirée'}</button>`:`<button class="btn-primary" onclick="showScreen('inscription')">Créer mon profil pour rejoindre</button>`}
+      ${isRegistered
+      ?`<div style="background:#1A4035;border:1px solid #5DCAA5;border-radius:14px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;gap:10px"><span style="font-size:20px">✅</span><div><div style="font-size:14px;font-weight:500;color:#5DCAA5">Vous êtes inscrite à cette soirée</div><div style="font-size:12px;color:#A8D5C2;margin-top:2px">Ta place est réservée 🎉</div></div></div><button class="btn-primary" onclick="selectAndJoin('${soireeId}')">Entrer dans la soirée ✨</button><button class="btn-ghost" style="margin-top:10px" onclick="leaveSoiree('${soireeId}')">Se désinscrire</button>`
+      :myProfil
+        ?`<button class="btn-primary" onclick="${isFull?`joinAttente('${soireeId}')`:` selectAndJoin('${soireeId}')`}" style="background:${isFull?'#6B5FAD':'var(--v)'}">${isFull?"Liste d'attente":'Rejoindre cette soirée'}</button>`
+        :`<button class="btn-primary" onclick="showScreen('inscription')">Créer mon profil pour rejoindre</button>`
+    }
       
     </div>`;
   showScreen('soiree-detail');
@@ -721,21 +731,25 @@ async function joinAttente(soireeId){
   showToast('⏳','Tu es sur la liste d\'attente !');goBack();
 }
 
-function renderAgenda(){
+async function renderAgenda(){
   const list=document.getElementById('agenda-list');if(!list)return;
+  list.innerHTML='<div class="no-content">Chargement...</div>';
+  const inscrites=new Set();
+  if(myId){for(const sid of Object.keys(SOIREES_DB)){try{const snap=await db.ref(`soirees/${sid}/participants/${myId}`).get();if(snap.val())inscrites.add(sid);}catch(e){}}}
   const now=Date.now();
   const upcoming=Object.entries(SOIREES_DB).filter(([,s])=>s.ts>=now-86400000).sort((a,b)=>a[1].ts-b[1].ts);
   const past=Object.entries(SOIREES_DB).filter(([,s])=>s.ts<now-86400000).sort((a,b)=>b[1].ts-a[1].ts);
   let html='<div style="padding:0 0 40px">';
-  if(upcoming.length){html+='<div style="padding:12px 20px 10px;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;font-weight:500">À venir</div>';upcoming.forEach(([id,s])=>{html+=agendaCard(id,s,false);});}
-  if(past.length){html+='<div style="padding:12px 20px 10px;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;font-weight:500">Passées</div>';past.forEach(([id,s])=>{html+=agendaCard(id,s,true);});}
+  if(upcoming.length){html+='<div style="padding:12px 20px 10px;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;font-weight:500">À venir</div>';upcoming.forEach(([id,s])=>{html+=agendaCard(id,s,false,inscrites.has(id));});}
+  if(past.length){html+='<div style="padding:12px 20px 10px;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;font-weight:500">Passées</div>';past.forEach(([id,s])=>{html+=agendaCard(id,s,true,inscrites.has(id));});}
   html+='<div style="padding:16px 20px;font-size:12px;color:var(--dim);text-align:center;line-height:1.6">Toutes les soirées se vivent sans téléphone.<br>L\'appli s\'utilise à la fin, pour les connexions. 💜<br><br><span style="font-size:11px;color:#2A1E60">© Magdeleine BS · MindSwipe</span></div></div>';
   list.innerHTML=html;
 }
-function agendaCard(id,s,isPast){
+
+function agendaCard(id,s,isPast,isInscrite=false){
   const typo=TYPOLOGIES.find(t=>t.id===s.typo);
   const tags=typo?typo.tags.slice(0,3).map(t=>`<span class="agenda-tag" onclick="filterByHashtag('${t}')">${t}</span>`).join(''):'';
-  return `<div class="agenda-card ${isPast?'past':'upcoming'}" onclick="openSoireeDetail('${id}')"><div class="agenda-card-header"><div><div class="agenda-name">${s.nom}</div><div class="agenda-format">${s.format}</div></div><div class="agenda-badge ${isPast?'past':''}">${isPast?'Passée':'À venir'}</div></div><div class="agenda-details"><div class="agenda-detail-row"><span>📅</span><span>${s.date}</span></div><div class="agenda-detail-row"><span>⏰</span><span>${s.horaire}</span></div><div class="agenda-detail-row"><span>📍</span><span>${s.lieu}</span></div><div class="agenda-detail-row"><span>🎟</span><span>${s.tarif}</span></div></div><div class="agenda-tags">${tags}</div>${!isPast?`<button class="agenda-join-btn" onclick="event.stopPropagation();openSoireeDetail('${id}')">Voir la soirée →</button>`:''}</div>`;
+  return `<div class="agenda-card ${isPast?'past':'upcoming'}" onclick="openSoireeDetail('${id}')"><div class="agenda-card-header"><div><div class="agenda-name">${s.nom}</div><div class="agenda-format">${s.format}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><div class="agenda-badge ${isPast?'past':''}">${isPast?'Passée':'À venir'}</div>${isInscrite?'<div style="font-size:10px;font-weight:600;color:#5DCAA5;background:#1A4035;padding:2px 8px;border-radius:10px">✓ Inscrite</div>':''}</div></div><div class="agenda-details"><div class="agenda-detail-row"><span>📅</span><span>${s.date}</span></div><div class="agenda-detail-row"><span>⏰</span><span>${s.horaire}</span></div><div class="agenda-detail-row"><span>📍</span><span>${s.lieu}</span></div><div class="agenda-detail-row"><span>🎟</span><span>${s.tarif}</span></div></div><div class="agenda-tags">${tags}</div>${!isPast?`<button class="agenda-join-btn" onclick="event.stopPropagation();openSoireeDetail('${id}')">Voir la soirée →</button>`:''}</div>`;
 }
 
 function selectGenre(g){
